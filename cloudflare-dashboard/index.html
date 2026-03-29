@@ -19,6 +19,15 @@
     --font-mono: 'DM Mono', monospace;
   }
 
+  [data-theme="dark"] {
+    --charcoal: #e2e8f0;
+    --slate: #94a3b8;
+    --light-gray: #334155;
+    --off-white: #0f172a;
+    --white: #020617;
+    --ink: #f8fafc;
+  }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
 
@@ -28,6 +37,7 @@
     font-family: var(--font-body);
     font-weight: 300;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.4s ease, color 0.4s ease;
   }
 
   /* NAV */
@@ -418,6 +428,47 @@
     letter-spacing: 0.1em;
   }
 
+  /* Theme Toggle */
+  .theme-toggle {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--charcoal);
+    color: var(--white);
+    border: none;
+    cursor: pointer;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: transform 0.2s, background 0.2s;
+  }
+  .theme-toggle:hover {
+    transform: scale(1.1);
+  }
+  .theme-toggle .tooltip {
+    position: absolute;
+    right: 60px;
+    background: var(--charcoal);
+    color: var(--white);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  .theme-toggle:hover .tooltip, .theme-toggle:focus .tooltip {
+    opacity: 1;
+  }
+
   /* Reveal */
   .reveal {
     opacity: 0;
@@ -440,6 +491,11 @@
 </style>
 </head>
 <body>
+
+<button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode">
+  <span class="icon">🌓</span>
+  <span class="tooltip">Toggle Dark Theme</span>
+</button>
 
 <nav>
   <a href="#" class="nav-logo">banproof.me</a>
@@ -503,11 +559,10 @@
       <div class="project-trigger">&gt; 10 videos/week → Deploy Agent</div>
       <span class="project-arrow">→</span>
     </div>
-    <div class="project-row">
-      <div class="project-name">SOLEFOODNY</div>
-      <span class="project-phase">Architecture</span>
-      <div class="project-trigger">Beta Launch → Relocation Review</div>
-      <span class="project-arrow">→</span>
+    <div id="cf-domains-container">
+      <div class="project-row" style="opacity: 0.5;">
+        <div class="project-name">Loading Cloudflare Zones...</div>
+      </div>
     </div>
   </div>
 </section>
@@ -597,6 +652,40 @@
 </footer>
 
 <script>
+  // Cloudflare Domain Fetch Simulation
+  async function loadCloudflareDomains() {
+    const container = document.getElementById('cf-domains-container');
+    try {
+      // In production: fetch('https://api.cloudflare.com/client/v4/zones', { headers: { 'Authorization': 'Bearer YOUR_TOKEN' }})
+      await new Promise(r => setTimeout(r, 800)); // Simulate latency
+      
+      const cfDomains = [
+        { name: "banproof.me", status: "Active Zone" },
+        { name: "solefoodny.com", status: "DNS Migration" }
+      ];
+
+      container.innerHTML = cfDomains.map(d => `
+        <div class="project-row">
+          <div class="project-name">${d.name}</div>
+          <span class="project-phase">Cloudflare Network</span>
+          <div class="project-trigger">${d.status}</div>
+          <span class="project-arrow">→</span>
+        </div>
+      `).join('');
+    } catch (e) {
+      container.innerHTML = `<div class="project-row">Error connecting to Cloudflare</div>`;
+    }
+  }
+
+  loadCloudflareDomains();
+
+  // Dark Mode Toggle
+  const toggleBtn = document.getElementById('theme-toggle');
+  toggleBtn.addEventListener('click', () => {
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  });
+
   const observer = new IntersectionObserver(entries => {
     entries.forEach(e => {
       if (e.isIntersecting) {
