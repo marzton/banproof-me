@@ -24,6 +24,16 @@ app.get('/api/data/goldshore', (c: any) => {
   });
 });
 
+app.get('/api/status', (c: any) => {
+  // This route is protected by the tollBoothMiddleware.
+  // We can access the poaScore that was set in the middleware.
+  const poaScore = c.get('poaScore');
+  return c.json({
+    message: 'Gateway status: Operational',
+    poaScore: poaScore ?? 'N/A',
+  });
+});
+
 serve({
   fetch: app.fetch,
   port: 3000
