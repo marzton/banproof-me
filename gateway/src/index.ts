@@ -43,6 +43,16 @@ app.get('/api/health', async (c) => {
   return c.json({ status: 'ok', database, workflow });
 });
 
+// Authorization middleware for Pro-only API routes
+app.use('/api/pro/*', async (c, next) => {
+  const plan = c.req.header('x-user-plan');
+
+  if (plan !== 'pro') {
+    return c.json({ error: 'Forbidden: Pro plan required' }, 403);
+  }
+
+  await next();
+});
 // ── POST /api/pro/analyze ─────────────────────────────────────
 // Triggers a BanproofEngine workflow instance.
 app.post('/api/pro/analyze', async (c) => {
