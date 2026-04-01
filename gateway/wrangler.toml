@@ -43,6 +43,9 @@ USE_MOCK    = "true"
 # JWT_SECRET must be set via: wrangler secret put JWT_SECRET
 
 # ── Development environment ───────────────────────────────────
+# NOTE: Dev and staging share the production D1 database for now.
+# This is safe because USE_MOCK=true means no real API calls are made.
+# Create separate D1 instances when ready to test with real data.
 [env.development]
 vars = { ENVIRONMENT = "development", USE_MOCK = "true" }
 

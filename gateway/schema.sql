@@ -6,7 +6,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id            TEXT     PRIMARY KEY,          -- crypto.randomUUID()
     email         TEXT     UNIQUE NOT NULL,
-    password_hash TEXT     NOT NULL DEFAULT '',  -- PBKDF2 (never store plaintext)
+    password_hash TEXT     NOT NULL,             -- PBKDF2 (never store plaintext)
     plan_tier     TEXT     NOT NULL DEFAULT 'free',   -- 'free' | 'pro' | 'agency'
     role          TEXT     NOT NULL DEFAULT 'user',   -- 'user' | 'admin' | 'sudo'
     discord_id    TEXT,

@@ -37,7 +37,7 @@ app.use(
       const allowList = c.env.CORS_ORIGINS
         ? c.env.CORS_ORIGINS.split(',').map((o) => o.trim())
         : ['https://banproof.me', 'http://localhost:5500', 'http://localhost:8788'];
-      return allowList.includes(origin) ? origin : allowList[0];
+      return allowList.includes(origin) ? origin : null;
     },
     allowMethods:  ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders:  ['Content-Type', 'Authorization'],

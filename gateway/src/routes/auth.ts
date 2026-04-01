@@ -52,7 +52,7 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   if (parts.length !== 3 || parts[0] !== 'pbkdf2') return false;
 
   const saltBytes = Uint8Array.from(
-    parts[1].match(/.{2}/g)!.map((b) => parseInt(b, 16)),
+    (parts[1].match(/.{2}/g) ?? []).map((b) => parseInt(b, 16)),
   );
 
   const keyMaterial = await crypto.subtle.importKey(

@@ -13,6 +13,8 @@ jobs:
   test:
     name: Lint, Build & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     defaults:
       run:
@@ -52,6 +54,8 @@ jobs:
     name: Deploy to Staging
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: github.ref == 'refs/heads/staging'
 
     defaults:
@@ -81,6 +85,8 @@ jobs:
     name: Deploy to Production
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: github.ref == 'refs/heads/main'
 
     defaults:

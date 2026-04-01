@@ -1039,17 +1039,25 @@ function formatDate(iso) {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (res.ok) {
-      const data = await res.json();
-      // Decode JWT to get user info (payload is base64url middle segment)
+      // Decode JWT for display only — actual auth is enforced server-side
       const parts = accessToken.split('.');
       if (parts.length === 3) {
-        const raw  = atob(parts[1].replace(/-/g,'+').replace(/_/g,'/'));
-        currentUser = JSON.parse(raw);
-        currentUser.id    = currentUser.sub;
-        currentUser.role  = currentUser.role;
-        currentUser.tier  = currentUser.tier;
-        currentUser.email = currentUser.email;
-        showApp();
+        try {
+          const raw  = atob(parts[1].replace(/-/g,'+').replace(/_/g,'/'));
+          const claims = JSON.parse(raw);
+          // Server already validated the token above (res.ok)
+          currentUser = {
+            id:    claims.sub,
+            email: claims.email,
+            role:  claims.role,
+            tier:  claims.tier,
+          };
+          showApp();
+        } catch {
+          // Malformed JWT — clear storage
+          localStorage.removeItem('bp_access_token');
+          localStorage.removeItem('bp_refresh_token');
+        }
       }
     } else {
       // Clear invalid tokens

@@ -56,6 +56,9 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
           body: JSON.stringify({ inputs: query }),
         },
       );
+      if (!res.ok) {
+        throw new Error(`HuggingFace API error: ${res.status} ${res.statusText}`);
+      }
       const json = await res.json<Array<Array<{ label: string; score: number }>>>();
       const top  = json[0]?.sort((a, b) => b.score - a.score)[0];
       return {

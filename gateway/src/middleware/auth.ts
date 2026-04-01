@@ -57,7 +57,11 @@ export const authMiddleware: MiddlewareHandler<{
     .bind(token, payload.sub)
     .first<{ revoked_at: string | null }>();
 
-  if (!revoked || revoked.revoked_at !== null) {
+  if (!revoked) {
+    return c.json({ error: 'Session not found. Please sign in again.' }, 401);
+  }
+
+  if (revoked.revoked_at !== null) {
     return c.json({ error: 'Session has been revoked. Please sign in again.' }, 401);
   }
 
