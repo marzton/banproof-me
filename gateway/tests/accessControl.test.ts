@@ -128,6 +128,32 @@ describe('accessControlMiddleware', () => {
     expect(body.status).toBe('ok');
   });
 
+  // ── CORS preflight bypass ─────────────────────────────────
+
+  it('allows OPTIONS on a protected route without auth (CORS preflight)', async () => {
+    const app = buildApp();
+    const req = new Request('http://localhost/api/pro/analyze', {
+      method: 'OPTIONS',
+      headers: { 'CF-Connecting-IP': TRUSTED_IP },
+    });
+    const res = await doFetch(app, req);
+    // The middleware passes through; Hono returns 404 because no OPTIONS handler
+    // is registered — the important thing is it is NOT 401/403.
+    expect(res.status).not.toBe(401);
+    expect(res.status).not.toBe(403);
+  });
+
+  it('allows OPTIONS on an admin route without auth (CORS preflight)', async () => {
+    const app = buildApp();
+    const req = new Request('http://localhost/admin/config', {
+      method: 'OPTIONS',
+      headers: { 'CF-Connecting-IP': UNTRUSTED_IP },
+    });
+    const res = await doFetch(app, req);
+    expect(res.status).not.toBe(401);
+    expect(res.status).not.toBe(403);
+  });
+
   // ── Zero-Edge SSO — Pro tier ──────────────────────────────
 
   it('allows POST /api/pro/analyze with valid JWT + pro tier', async () => {

@@ -53,6 +53,15 @@ export const accessControlMiddleware: MiddlewareHandler = async (c, next) => {
     c.req.header('X-Forwarded-For')?.split(',')?.[0]?.trim() ??
     'unknown';
 
+  // ── CORS preflight bypass ─────────────────────────────────
+  // OPTIONS requests must not be blocked so browser preflight succeeds.
+  // The actual request that follows will be authenticated normally.
+
+  if (method === 'OPTIONS') {
+    await next();
+    return;
+  }
+
   // ── Public route bypass ───────────────────────────────────
 
   if (PUBLIC_ROUTES.has(path)) {
