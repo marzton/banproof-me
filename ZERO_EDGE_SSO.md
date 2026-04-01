@@ -240,7 +240,7 @@ If a JWT is present but **invalid** (wrong signature, expired, wrong audience), 
 
 If you're calling a protected route without a JWT and without an agent token, the middleware returns 401. This is expected. Add one of:
 - `Cf-Access-Jwt-Assertion: <valid-jwt>` (Zero-Edge SSO)
-- `Authorization: Bearer secret_agent_key_2026` (agent token, dev only)
+- `Authorization: Bearer <your-dev-agent-token>` (agent token, dev only)
 
 ### 401 JWT validation errors
 

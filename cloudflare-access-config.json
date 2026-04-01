@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "description": "Cloudflare Access Zero-Edge policies for banproof-core",
-  "team_domain": "banproof.cloudflareaccess.com",
+  "team_domain": "your-team.cloudflareaccess.com",
   "applications": [
     {
       "name": "Banproof Public Site",
@@ -45,7 +45,7 @@
       "description": "Pro-tier API endpoints — requires valid JWT + authenticated user",
       "domain": "banproof.me",
       "path": "/api/pro/*",
-      "aud": "https://banproof-core.marzton.workers.dev",
+      "aud": "https://your-app.workers.dev",
       "session_duration": "24h",
       "auto_redirect_to_identity": true,
       "allowed_idps": ["discord", "google", "github"],
@@ -94,7 +94,7 @@
       "description": "Admin dashboard and config — requires admin role + IP reputation check",
       "domain": "banproof.me",
       "path": "/admin/*",
-      "aud": "https://banproof-core.marzton.workers.dev",
+      "aud": "https://your-app.workers.dev",
       "session_duration": "4h",
       "auto_redirect_to_identity": true,
       "allowed_idps": ["github"],

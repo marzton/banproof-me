@@ -105,8 +105,12 @@ export async function validateZeroEdgeJWT(
   }
 
   // Validate audience
-  const audList = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-  if (audience && !audList.includes(audience)) {
+  // Note: when audience is empty (e.g. ENVIRONMENT=development), this check is skipped
+  // intentionally — use a real audience in production (CF_ACCESS_AUDIENCE env var).
+  const audList = Array.isArray(payload.aud)
+    ? payload.aud
+    : payload.aud != null ? [payload.aud] : [];
+  if (audience && (!audList.length || !audList.includes(audience))) {
     throw new Error('Invalid JWT: audience mismatch');
   }
 

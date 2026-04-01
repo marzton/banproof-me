@@ -26,6 +26,8 @@ import { validateZeroEdgeJWT } from '../src/middleware/zeroEdgeSSO.js';
 
 // ── Test helpers ──────────────────────────────────────────────
 
+// Dev-only hardcoded token used by validateProofOfAgency in proofOfAgency.ts.
+// NOT a real credential — see proofOfAgency.ts for context.
 const VALID_TOKEN  = 'secret_agent_key_2026'; // PoA agent token
 const TRUSTED_IP   = '100.100.100.1';
 const UNTRUSTED_IP = '203.0.113.99';
