@@ -45,7 +45,7 @@ export const accessControlMiddleware: MiddlewareHandler = async (c, next) => {
   // Resolve client IP from Cloudflare headers first, then standard header
   const ipAddress =
     c.req.header('CF-Connecting-IP') ??
-    c.req.header('X-Forwarded-For')?.split(',')[0].trim() ??
+    c.req.header('X-Forwarded-For')?.split(',')?.[0]?.trim() ??
     'unknown';
 
   // ── Public route bypass ───────────────────────────────────
