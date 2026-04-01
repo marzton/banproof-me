@@ -2,6 +2,7 @@
   "name": "banproof-gateway",
   "version": "1.0.0",
   "description": "Toll Booth API Gateway for banproof.me",
+  "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts"
