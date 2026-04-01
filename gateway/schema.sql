@@ -67,6 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_admin_audit_admin_id ON admin_audit_log (admin_id
 CREATE TABLE IF NOT EXISTS audit_log (
     id         INTEGER  PRIMARY KEY AUTOINCREMENT,
     user_id    TEXT,
+    user_id    TEXT     NOT NULL REFERENCES users(id),
     action     TEXT     NOT NULL,
     metadata   TEXT,
     ip_address TEXT,
@@ -103,3 +104,5 @@ CREATE TABLE IF NOT EXISTS inquiries (
 );
 
 CREATE INDEX IF NOT EXISTS idx_inquiries_status ON inquiries (status);
+CREATE INDEX IF NOT EXISTS idx_audit_log_user_id    ON audit_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_created_at ON audit_log(created_at);
