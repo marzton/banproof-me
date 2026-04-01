@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
-    plan_tier TEXT DEFAULT 'free', -- 'free', 'pro', 'agency'
+    plan_tier TEXT DEFAULT 'free' CHECK (plan_tier IN ('free', 'pro', 'agency')), -- 'free', 'pro', 'agency'
     stripe_customer_id TEXT,
     discord_id TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP

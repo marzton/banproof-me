@@ -1,9 +1,10 @@
-import { WorkflowEntrypoint, WorkflowStep } from 'cloudflare:workers';
+import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from 'cloudflare:workers';
 
+type Env = {};
 type Params = { query: string; userId: string };
 
-export class BanproofEngine extends WorkflowEntrypoint<{}, Params> {
-  async run(event: any, step: WorkflowStep) {
+export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
+  async run(event: WorkflowEvent<Env, Params>, step: WorkflowStep) {
     const { query, userId } = event.payload;
 
     // Step 1: AI Sentiment (Hugging Face)
