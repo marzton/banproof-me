@@ -1248,7 +1248,7 @@
           <li class="dim">Audit logs</li>
           <li class="dim">SLA guarantee</li>
         </ul>
-        <a href="#" class="btn-ghost" data-modal="developer" style="display:block; text-align:center;">Get started free</a>
+        <a href="mailto:hello@rmarston.com" class="btn-ghost" data-modal="developer" style="display:block; text-align:center;">Get started free</a>
       </div>
 
       <div class="price-card featured">
@@ -1264,7 +1264,7 @@
           <li>Custom risk thresholds</li>
           <li class="dim">Dedicated node pool</li>
         </ul>
-        <a href="#" class="btn-primary" data-modal="pro" style="display:block; text-align:center;">Start Pro trial</a>
+        <a href="mailto:hello@rmarston.com" class="btn-primary" data-modal="pro" style="display:block; text-align:center;">Start Pro trial</a>
       </div>
 
       <div class="price-card">
@@ -1315,8 +1315,8 @@
 </footer>
 
 <!-- ACCESS MODAL -->
-<div id="access-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-  <div class="modal">
+<div id="access-modal" class="modal-backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-desc">
     <div class="modal-header">
       <p class="modal-title" id="modal-title">Request <span>access.</span></p>
       <button class="modal-close" id="modal-close-btn" aria-label="Close">&times;</button>
@@ -1325,7 +1325,7 @@
       <p class="modal-desc" id="modal-desc">
         Join the early access list. First 50 developers get Pro free for 3 months. We'll follow up within one business day.
       </p>
-      <form class="modal-form" id="modal-form" novalidate>
+      <form class="modal-form" id="modal-form">
         <div class="form-row">
           <div class="form-field">
             <label class="form-label" for="modal-name">Name</label>
@@ -1356,8 +1356,8 @@
       </form>
       <div class="modal-success" id="modal-success" role="status">
         <div class="modal-success-icon">◉</div>
-        <p class="modal-success-title">Request received.</p>
-        <p class="modal-success-msg">We'll be in touch within one business day. Keep an eye on <span id="modal-success-email" style="color:var(--text)"></span>.</p>
+        <p class="modal-success-title">Email draft opened.</p>
+        <p class="modal-success-msg">We've opened an email draft in your mail client — please review and send it to complete your request. We'll reply to <span id="modal-success-email" style="color:var(--text)"></span> within one business day.</p>
       </div>
     </div>
   </div>
@@ -1419,6 +1419,7 @@
   // ── ACCESS MODAL ──
   (function () {
     const backdrop  = document.getElementById('access-modal');
+    const modal     = backdrop.querySelector('.modal');
     const form      = document.getElementById('modal-form');
     const success   = document.getElementById('modal-success');
     const tierEl    = document.getElementById('modal-tier');
@@ -1434,8 +1435,18 @@
       general:   'Join the early access list. First 50 developers get Pro free for 3 months. We\'ll follow up within one business day.',
     };
 
+    // Focus management
+    let previousFocus = null;
+
+    function getFocusable() {
+      return Array.from(modal.querySelectorAll(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      ));
+    }
+
     function openModal(tier) {
       tier = tier || 'general';
+      previousFocus = document.activeElement;
       // Reset state
       form.style.display = '';
       success.classList.remove('visible');
@@ -1453,6 +1464,9 @@
     function closeModal() {
       backdrop.classList.remove('open');
       document.body.style.overflow = '';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send request';
+      if (previousFocus) { previousFocus.focus(); previousFocus = null; }
     }
 
     // Wire all modal trigger buttons
@@ -1469,22 +1483,31 @@
     backdrop.addEventListener('click', function (e) {
       if (e.target === backdrop) closeModal();
     });
+
+    // Keyboard: Escape to close, Tab/Shift+Tab focus trap
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && backdrop.classList.contains('open')) closeModal();
+      if (!backdrop.classList.contains('open')) return;
+      if (e.key === 'Escape') { closeModal(); return; }
+      if (e.key === 'Tab') {
+        const focusable = getFocusable();
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last  = focusable[focusable.length - 1];
+        if (e.shiftKey) {
+          if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        } else {
+          if (document.activeElement === last)  { e.preventDefault(); first.focus(); }
+        }
+      }
     });
 
-    // Form submit — sends to mailto as fallback; shows success state
+    // Form submit — browser validates required + email format; opens mailto draft
     form.addEventListener('submit', function (e) {
       e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Opening draft…';
       const name  = nameInput.value.trim();
       const email = emailInput.value.trim();
-      if (!name || !email) {
-        (name ? emailInput : nameInput).focus();
-        return;
-      }
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Sending…';
-      // Build mailto fallback
       const tier    = tierEl.options[tierEl.selectedIndex].text;
       const notes   = document.getElementById('modal-notes').value.trim();
       const subject = encodeURIComponent('Banproof access request — ' + tier);
@@ -1493,7 +1516,6 @@
         (notes ? '\n\nNotes:\n' + notes : '')
       );
       window.location.href = 'mailto:hello@rmarston.com?subject=' + subject + '&body=' + body;
-      // Show success state regardless (mailto opens native client)
       setTimeout(function () {
         form.style.display = 'none';
         document.getElementById('modal-success-email').textContent = email;
