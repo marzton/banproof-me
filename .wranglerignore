@@ -1,6 +1,7 @@
 .git
 .github
 .wrangler
+.wranglerignore
 .banproof
 .env.example
 .gitignore
