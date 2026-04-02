@@ -3,6 +3,8 @@
 // Durable, checkpointed processing for slow external APIs.
 // BanproofEngine — Cloudflare Workflow (Hybrid Mock/Real)
 // Durable, checkpointed processing for slow external APIs.
+// Branches based on user tier: free / pro / agency.
+// Toggle mock vs. real APIs via USE_MOCK env var.
 //
 // Toggle: set USE_MOCK="true" in wrangler.toml [vars] to use
 // randomised mock data instead of real external APIs.
@@ -199,5 +201,37 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
 
       return summary;
     });
+
+    // ── STEP 6: Email summary (agency, future) ───────────────
+    await step.do('email-summary', async () => {
+      console.log(`[Agency] Email summary queued for userId=${userId}`);
+    });
+
+    // ── STEP 7: Full audit trail (agency) ────────────────────
+    await step.do('full-audit-trail', async () => {
+      await this.env.DB.prepare(
+        `INSERT INTO audit_log (user_id, action, metadata) VALUES (?, ?, ?)`,
+      ).bind(userId, 'AGENCY_FULL_ANALYSIS', JSON.stringify({
+        query,
+        sentiment,
+        odds:      oddsResult.bookmakers,
+        bestPrice,
+        analytics,
+        executedAt: new Date().toISOString(),
+      })).run();
+    });
+
+    return {
+      tier:           userTier,
+      sentiment,
+      odds:           oddsResult.bookmakers,
+      best_price:     bestPrice,
+      analytics,
+      execution_proof: {
+        discord_sent:  !!this.env.DISCORD_WEBHOOK,
+        audit_logged:  true,
+        timestamp:     new Date().toISOString(),
+      },
+    };
   }
 }

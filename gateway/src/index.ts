@@ -2,10 +2,13 @@
 // banproof-core — Gatekeeper Worker (Cloudflare Workers)
 // ============================================================
 
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
+import { Hono }        from 'hono';
+import { cors }        from 'hono/cors';
 import type { Workflow } from '@cloudflare/workers-types';
 import { BanproofEngine } from './engine.js';
+import authRoutes      from './routes/auth.js';
+import adminRoutes     from './routes/admin.js';
+import { authMiddleware } from './middleware/auth.js';
 
 // ── Bindings type ─────────────────────────────────────────────
 type Bindings = {
@@ -93,28 +96,40 @@ import { auditLogger }   from './middleware/auditLogger.js';
 
 // ── Bindings type ─────────────────────────────────────────────
 type Bindings = {
-  DB:               D1Database;
-  CACHE:            KVNamespace;
-  ENGINE:           Workflow;
-  USE_MOCK:         string;
+  DB:             D1Database;
+  CACHE:          KVNamespace;
+  ENGINE:         Workflow;
+  JWT_SECRET:     string;
+  USE_MOCK:       string;
+  CORS_ORIGINS?:  string;
+  HF_API_TOKEN?:  string;
+  ODDS_API_KEY?:  string;
   DISCORD_WEBHOOK?: string;
 };
 
-const app = new Hono<{ Bindings: Bindings }>();
+type Variables = {
+  auth: import('./types/api.js').AuthContext;
+};
+
+const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // ── CORS middleware ───────────────────────────────────────────
 app.use(
   '/api/*',
   cors({
-    origin: ['https://banproof.me', 'http://localhost:5500'],
-    allowMethods: ['GET', 'POST', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-User-Tier'],
-    credentials: true,
+    origin: (origin, c) => {
+      const allowList = c.env.CORS_ORIGINS
+        ? c.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+        : ['https://banproof.me', 'http://localhost:5500', 'http://localhost:8788'];
+      return allowList.includes(origin) ? origin : null;
+    },
+    allowMethods:  ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders:  ['Content-Type', 'Authorization'],
+    credentials:   true,
   }),
 );
 
 // ── GET /api/health ───────────────────────────────────────────
-// Verifies D1 connectivity and that the Workflow binding exists.
 app.get('/api/health', async (c) => {
   let database = false;
   try {
@@ -126,20 +141,29 @@ app.get('/api/health', async (c) => {
 
   const workflow = typeof c.env.ENGINE?.create === 'function';
 
-  return c.json({ status: 'ok', database, workflow });
+  return c.json({
+    status:   'ok',
+    database,
+    workflow,
+    mock:     c.env.USE_MOCK !== 'false',
+    ts:       new Date().toISOString(),
+  });
 });
+
+// ── Auth routes (/auth/*) ─────────────────────────────────────
+app.route('/auth', authRoutes);
+
+// ── Admin routes (/admin/*) ───────────────────────────────────
+app.route('/admin', adminRoutes);
 
 // ── POST /api/pro/analyze ─────────────────────────────────────
 // Triggers a BanproofEngine workflow instance.
-app.post(
-  '/api/pro/analyze',
-  rateLimiter,
-  auditLogger,
-  async (c) => {
-    const { query, userId } = await c.req.json<{
-      query: string;
-      userId: string;
-    }>();
+// Requires valid JWT auth.
+app.post('/api/pro/analyze', authMiddleware, async (c) => {
+  const { query, userId } = await c.req.json<{
+    query:  string;
+    userId: string;
+  }>();
 
     if (!query || !userId) {
       return c.json({ error: 'query and userId are required.' }, 400);
@@ -152,6 +176,13 @@ app.post(
     return c.json({ workflowId: instance.id }, 202);
   },
 );
+
+// ── Fallback ──────────────────────────────────────────────────
+app.notFound((c) => c.json({ error: 'Route not found.' }, 404));
+app.onError((err, c) => {
+  console.error('[banproof-core]', err);
+  return c.json({ error: 'Internal server error.' }, 500);
+});
 
 // ── Exports ───────────────────────────────────────────────────
 export { BanproofEngine };
