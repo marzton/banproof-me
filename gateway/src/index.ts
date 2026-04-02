@@ -14,11 +14,11 @@ import { authMiddleware } from './middleware/auth.js';
 
 // ── Bindings type ─────────────────────────────────────────────
 // Extends IdentityEnv (DB + CACHE) with the Workflow binding.
-type Bindings = {
+interface Bindings {
   DB:     D1Database;
   CACHE:  KVNamespace;
   ENGINE: Workflow;
-};
+}
 
 const app = new Hono<{ Bindings: Bindings; Variables: IdentityVariables }>();
 
