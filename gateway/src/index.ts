@@ -2,100 +2,26 @@
 // banproof-core — Gatekeeper Worker (Cloudflare Workers)
 // ============================================================
 
-import { Hono }        from 'hono';
-import { cors }        from 'hono/cors';
-import type { Workflow } from '@cloudflare/workers-types';
-import type { IdentityVariables } from '@goldshore/identity';
-import { authMiddleware, requirePro } from '@goldshore/identity';
-import { BanproofEngine } from './engine.js';
-import authRoutes      from './routes/auth.js';
-import adminRoutes     from './routes/admin.js';
+import { Hono }           from 'hono';
+import { cors }           from 'hono/cors';
+import type { Workflow }   from '@cloudflare/workers-types';
+import { BanproofEngine }  from './engine.js';
+import authRoutes         from './routes/auth.js';
+import adminRoutes        from './routes/admin.js';
 import { authMiddleware } from './middleware/auth.js';
-
-// ── Bindings type ─────────────────────────────────────────────
-// Extends IdentityEnv (DB + CACHE) with the Workflow binding.
-interface Bindings {
-  DB:     D1Database;
-  CACHE:  KVNamespace;
-  ENGINE: Workflow;
-}
-
-const app = new Hono<{ Bindings: Bindings; Variables: IdentityVariables }>();
-
-// ── CORS middleware ───────────────────────────────────────────
-app.use(
-  '/api/*',
-  cors({
-    origin: ['https://banproof.me', 'http://localhost:5500'],
-    allowMethods: ['GET', 'POST', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-  }),
-);
-
-// ── GET /api/health ───────────────────────────────────────────
-// Verifies D1 connectivity and that the Workflow binding exists.
-app.get('/api/health', async (c) => {
-  let database = false;
-  try {
-    await c.env.DB.prepare('SELECT 1').first();
-    database = true;
-  } catch {
-    // D1 not reachable
-  }
-
-  const workflow = typeof c.env.ENGINE?.create === 'function';
-
-  return c.json({ status: 'ok', database, workflow });
-});
-
-// Authorization middleware for Pro-only API routes
-app.use('/api/pro/*', async (c, next) => {
-  const plan = c.req.header('x-user-plan');
-
-  if (plan !== 'pro') {
-    return c.json({ error: 'Forbidden: Pro plan required' }, 403);
-  }
-
-  await next();
-});
-// ── POST /api/pro/analyze ─────────────────────────────────────
-// Auth-gated: requires a valid session with Pro (or Admin) tier.
-// Triggers a BanproofEngine workflow instance.
-app.post('/api/pro/analyze', authMiddleware, requirePro, async (c) => {
-  let query: string;
-  try {
-    ({ query } = await c.req.json<{ query: string }>());
-  } catch {
-    return c.json({ error: 'Invalid JSON in request body.' }, 400);
-  }
-
-  if (!query) {
-    return c.json({ error: 'query is required.' }, 400);
-  }
-
-  const userId = c.var.user.id;
-
-  const instance = await c.env.ENGINE.create({
-    params: { query, userId },
-  });
-
-  return c.json({ workflowId: instance.id }, 202);
-});
-
-import { rateLimiter }   from './middleware/rateLimiter.js';
-import { auditLogger }   from './middleware/auditLogger.js';
+import { rateLimiter }    from './middleware/rateLimiter.js';
+import { auditLogger }    from './middleware/auditLogger.js';
 
 // ── Bindings type ─────────────────────────────────────────────
 type Bindings = {
-  DB:             D1Database;
-  CACHE:          KVNamespace;
-  ENGINE:         Workflow;
-  JWT_SECRET:     string;
-  USE_MOCK:       string;
-  CORS_ORIGINS?:  string;
-  HF_API_TOKEN?:  string;
-  ODDS_API_KEY?:  string;
+  DB:               D1Database;
+  CACHE:            KVNamespace;
+  ENGINE:           Workflow;
+  JWT_SECRET:       string;
+  USE_MOCK:         string;
+  CORS_ORIGINS?:    string;
+  HF_API_TOKEN?:    string;
+  ODDS_API_KEY?:    string;
   DISCORD_WEBHOOK?: string;
 };
 
@@ -149,17 +75,44 @@ app.route('/auth', authRoutes);
 app.route('/admin', adminRoutes);
 
 // ── POST /api/pro/analyze ─────────────────────────────────────
+// Auth-gated: requires a valid JWT session with Pro or Agency tier.
 // Triggers a BanproofEngine workflow instance.
-// Requires valid JWT auth.
-app.post('/api/pro/analyze', authMiddleware, async (c) => {
-  const { query, userId } = await c.req.json<{
-    query:  string;
-    userId: string;
-  }>();
+app.post(
+  '/api/pro/analyze',
+  authMiddleware,
+  rateLimiter,
+  auditLogger,
+  async (c) => {
+    const auth = c.var.auth;
 
-    if (!query || !userId) {
-      return c.json({ error: 'query and userId are required.' }, 400);
+    if (auth.tier === 'free') {
+      return c.json(
+        { error: 'Pro subscription required.', upgrade: '/pricing' },
+        403,
+      );
     }
+
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: 'Invalid JSON in request body.' }, 400);
+    }
+
+    if (
+      typeof body !== 'object' ||
+      body === null ||
+      typeof (body as { query?: unknown }).query !== 'string' ||
+      !(body as { query: string }).query.trim()
+    ) {
+      return c.json(
+        { error: '"query" (non-empty string) is required.' },
+        400,
+      );
+    }
+
+    const { query } = body as { query: string };
+    const userId    = auth.userId;
 
     const instance = await c.env.ENGINE.create({
       params: { query, userId, useMock: c.env.USE_MOCK === 'true' },

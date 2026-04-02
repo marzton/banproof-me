@@ -15,7 +15,14 @@ import { MiddlewareHandler } from 'hono';
 import { getCookie }         from 'hono/cookie';
 import type { IdentityEnv, IdentityVariables, User } from '../types.js';
 
-const SESSION_TTL = 300; // KV cache TTL in seconds (5 min)
+// Maximum KV cache TTL; actual TTL is min(SESSION_TTL, remaining session lifetime).
+const SESSION_TTL = 300;
+
+// Shape stored in KV — user fields plus expiry for cache-hit validation.
+type CachedSession = Pick<
+  User,
+  'id' | 'email' | 'plan_tier' | 'subscription_status'
+> & { expires_at: string };
 
 export const authMiddleware: MiddlewareHandler<{
   Bindings: IdentityEnv;
@@ -30,11 +37,19 @@ export const authMiddleware: MiddlewareHandler<{
   }
 
   // 1. Check KV cache
-  const cached = await c.env.CACHE.get<
-    Pick<User, 'id' | 'email' | 'plan_tier' | 'subscription_status'>
-  >(`session:${sessionToken}`, 'json');
+  const cached = await c.env.CACHE.get<CachedSession>(
+    `session:${sessionToken}`,
+    'json',
+  );
 
   if (cached) {
+    // Belt-and-suspenders: reject if the cached session has already expired
+    // (KV TTL should prevent this, but guards against clock skew).
+    if (new Date(cached.expires_at).getTime() <= Date.now()) {
+      await c.env.CACHE.delete(`session:${sessionToken}`);
+      return c.json({ error: 'Session expired.' }, 401);
+    }
+
     if (
       cached.subscription_status === 'past_due' ||
       cached.subscription_status === 'canceled'
@@ -44,13 +59,19 @@ export const authMiddleware: MiddlewareHandler<{
         402,
       );
     }
-    c.set('user', cached);
+
+    c.set('user', {
+      id:                  cached.id,
+      email:               cached.email,
+      plan_tier:           cached.plan_tier,
+      subscription_status: cached.subscription_status,
+    });
     return next();
   }
 
   // 2. Fall back to D1 sessions table
   const row = await c.env.DB.prepare(
-    `SELECT u.id, u.email, u.plan_tier, u.subscription_status
+    `SELECT u.id, u.email, u.plan_tier, u.subscription_status, s.expires_at
        FROM sessions s
        JOIN users u ON u.id = s.user_id
       WHERE s.token = ?
@@ -58,7 +79,11 @@ export const authMiddleware: MiddlewareHandler<{
       LIMIT 1`,
   )
     .bind(sessionToken)
-    .first<Pick<User, 'id' | 'email' | 'plan_tier' | 'subscription_status'>>();
+    .first<
+      Pick<User, 'id' | 'email' | 'plan_tier' | 'subscription_status'> & {
+        expires_at: string;
+      }
+    >();
 
   if (!row) {
     return c.json({ error: 'Invalid or expired session.' }, 401);
@@ -74,14 +99,20 @@ export const authMiddleware: MiddlewareHandler<{
     );
   }
 
-  // 3. Populate KV cache
+  // 3. Cache with TTL bounded by the remaining session lifetime
+  const remainingSeconds = Math.floor(
+    (new Date(row.expires_at).getTime() - Date.now()) / 1000,
+  );
+  const cacheTtl = Math.max(1, Math.min(SESSION_TTL, remainingSeconds));
+
+  const { expires_at, ...userFields } = row;
   await c.env.CACHE.put(
     `session:${sessionToken}`,
-    JSON.stringify(row),
-    { expirationTtl: SESSION_TTL },
+    JSON.stringify({ ...userFields, expires_at } satisfies CachedSession),
+    { expirationTtl: cacheTtl },
   );
 
-  c.set('user', row);
+  c.set('user', userFields);
   return next();
 };
 
