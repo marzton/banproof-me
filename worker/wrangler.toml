@@ -1,16 +1,38 @@
 # ================================================================
-# banproof-core — Gatekeeper Worker
+# ██████╗  ██████╗     ███╗   ██╗ ██████╗ ████████╗
+# ██╔══██╗██╔═══██╗    ████╗  ██║██╔═══██╗╚══██╔══╝
+# ██║  ██║██║   ██║    ██╔██╗ ██║██║   ██║   ██║
+# ██║  ██║██║   ██║    ██║╚██╗██║██║   ██║   ██║
+# ██████╔╝╚██████╔╝    ██║ ╚████║╚██████╔╝   ██║
+# ╚═════╝  ╚═════╝     ╚═╝  ╚═══╝ ╚═════╝    ╚═╝
+#  ██████╗ ███████╗██████╗ ██╗      ██████╗ ██╗   ██╗
+# ██╔══██╗██╔════╝██╔══██╗██║     ██╔═══██╗╚██╗ ██╔╝
+# ██║  ██║█████╗  ██████╔╝██║     ██║   ██║ ╚████╔╝
+# ██║  ██║██╔══╝  ██╔═══╝ ██║     ██║   ██║  ╚██╔╝
+# ╚██████╔╝███████╗██║     ███████╗╚██████╔╝   ██║
+#  ╚═════╝ ╚══════╝╚═╝     ╚══════╝ ╚═════╝    ╚═╝
 # ================================================================
-# Deploy:  cd worker && npm run deploy
-# Dev:     cd worker && npm run dev
+# banproof-core-legacy — ⛔ ARCHIVED REFERENCE ONLY ⛔
 # ================================================================
-# banproof-core-legacy — DEPRECATED Gatekeeper Worker
-# ================================================================
-# This worker is superseded by gateway/ (banproof-core).
-# It is kept as a reference for the session-cookie + Turnstile
-# auth pattern and the Stripe webhook handler.
 #
-# DO NOT DEPLOY. Use gateway/ for all new development.
+#   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#   !!                                                        !!
+#   !!   DO NOT DEPLOY THIS WORKER — EVER.                   !!
+#   !!                                                        !!
+#   !!   This file is kept solely as a code reference for    !!
+#   !!   the Turnstile + session-cookie auth pattern and      !!
+#   !!   the legacy Stripe webhook handler.                   !!
+#   !!                                                        !!
+#   !!   The canonical worker is gateway/ (banproof-core).   !!
+#   !!   All active routes are owned by gateway/.            !!
+#   !!                                                        !!
+#   !!   `wrangler deploy` from this directory will deploy   !!
+#   !!   a conflicting worker with NO routes.  If you run it !!
+#   !!   accidentally, immediately run:                       !!
+#   !!     wrangler delete --name banproof-core-legacy        !!
+#   !!                                                        !!
+#   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#
 # ================================================================
 
 name             = "banproof-core-legacy"
