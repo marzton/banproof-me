@@ -74,7 +74,7 @@ database_id   = "54e1a408-4b81-4ca5-b6a4-c2314dc0cf46"
 # Then copy the resulting id below.
 [[kv_namespaces]]
 binding = "CACHE"
-id      = "REPLACE_WITH_KV_NAMESPACE_ID"
+id      = "af8eb071fce34b5eafbdeb1badd93876"
 
 # Infrastructure secrets — GH_PAT, CF_API_TOKEN, etc.
 # Reuses the namespace provisioned by banproof-audit.
