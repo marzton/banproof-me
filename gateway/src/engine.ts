@@ -179,17 +179,17 @@ import type { SentimentResult, OddsResult, AuditAction } from './types/api.js';
 
 // ── Env bindings available inside the Workflow ────────────────
 type Env = {
-  DB:              D1Database;
-  CACHE:           KVNamespace;
-  USE_MOCK:        string;          // "true" | "false"
-  HF_API_TOKEN?:   string;
-  ODDS_API_KEY?:   string;
+  DB:               D1Database;
+  CACHE:            KVNamespace;
+  USE_MOCK:         string;          // "true" | "false"
+  HF_API_TOKEN?:    string;
+  ODDS_API_KEY?:    string;
   DISCORD_WEBHOOK?: string;
 };
 
 export type Params = {
-  query:   string;
-  userId:  string;
+  query:    string;
+  userId:   string;
   useMock?: boolean;
 };
 
@@ -240,7 +240,7 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
         if (!res.ok) {
           throw new Error(`HuggingFace API error: ${res.status} ${res.statusText}`);
         }
-        const raw = await res.json();
+        const raw = await res.json() as unknown;
         const data = Array.isArray(raw) ? raw as Array<Array<{ label: string; score: number }>> : [];
         const top  = data[0]?.[0] ?? { label: 'NEUTRAL', score: 0.5 };
         const label = top.label.toUpperCase().includes('POS') ? 'BULLISH' : 'BEARISH';
@@ -248,8 +248,8 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
           score:      top.score,
           label,
           confidence: top.score,
-          source:     'REAL_HF',
-        } satisfies SentimentResult;
+          source:     'REAL_HF' as const,
+        };
       },
     );
 
@@ -265,7 +265,7 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
       if (!res.ok) {
         throw new Error(`Odds API error: ${res.status} ${res.statusText}`);
       }
-      const raw = await res.json();
+      const raw = await res.json() as unknown;
       const data = Array.isArray(raw) ? raw as Array<{
         bookmakers: Array<{ title: string; markets: Array<{ outcomes: Array<{ name: string; price: number }> }> }>;
       }> : [];
@@ -274,7 +274,7 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
         name:   bm.title,
         price:  bm.markets[0]?.outcomes[0]?.price ?? 0,
         spread: 0,
-        value:  undefined as OddsResult['bookmakers'][0]['value'],
+        value:  undefined,
       }));
       const best = bookmakers.length
         ? bookmakers.reduce((a, b) => (b.price > a.price ? b : a))
@@ -282,8 +282,8 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
       return {
         bookmakers,
         best_price: { bookmaker: best.name, price: best.price },
-        source: 'REAL_ODDS',
-      } satisfies OddsResult;
+        source: 'REAL_ODDS' as const,
+      };
     });
 
     // ── Step 3: Best Price Logic + D1 audit ───────────────────
@@ -293,7 +293,7 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
         query,
         userId,
         sentiment,
-        best_price: odds.best_price,
+        best_price:     odds.best_price,
         ev_opportunity: evOpportunity ?? null,
       };
 
@@ -331,31 +331,9 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
       return summary;
     });
 
-    // ── STEP 6: Email summary (agency, future) ───────────────
-    await step.do('email-summary', async () => {
-      console.log(`[Agency] Email summary queued for userId=${userId}`);
-    });
-
-    // ── STEP 7: Full audit trail (agency) ────────────────────
-    await step.do('full-audit-trail', async () => {
-      await this.env.DB.prepare(
-        `INSERT INTO audit_log (user_id, action, metadata) VALUES (?, ?, ?)`,
-      ).bind(userId, 'AGENCY_FULL_ANALYSIS', JSON.stringify({
-        query,
-        sentiment,
-        odds:      oddsResult.bookmakers,
-        bestPrice,
-        analytics,
-        executedAt: new Date().toISOString(),
-      })).run();
-    });
-
     return {
-      tier:           userTier,
       sentiment,
-      odds:           oddsResult.bookmakers,
-      best_price:     bestPrice,
-      analytics,
+      best_price: odds.best_price,
       execution_proof: {
         discord_sent:  !!this.env.DISCORD_WEBHOOK,
         audit_logged:  true,
