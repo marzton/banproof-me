@@ -64,6 +64,14 @@ id      = "af8eb071fce34b5eafbdeb1badd93876"
 binding = "INFRA_SECRETS"
 id      = "b9824d3280c54573a24137c7e7143b33"
 
+# ── R2 Object Storage (binding: STORAGE) ─────────────────────
+# Stores workflow results, audit snapshots, and uploaded assets.
+# Create the bucket first (if not already provisioned):
+#   wrangler r2 bucket create f77de112d2019e5456a3198a8bb50bd2
+[[r2_buckets]]
+binding     = "STORAGE"
+bucket_name = "f77de112d2019e5456a3198a8bb50bd2"
+
 # ── Cloudflare Workflows (binding: ENGINE) ────────────────────
 [[workflows]]
 binding    = "ENGINE"
@@ -125,6 +133,10 @@ id      = "af8eb071fce34b5eafbdeb1badd93876"
 binding = "INFRA_SECRETS"
 id      = "b9824d3280c54573a24137c7e7143b33"
 
+[[env.development.r2_buckets]]
+binding     = "STORAGE"
+bucket_name = "f77de112d2019e5456a3198a8bb50bd2"
+
 [[env.development.workflows]]
 binding    = "ENGINE"
 name       = "banproof-engine"
@@ -166,6 +178,10 @@ id      = "af8eb071fce34b5eafbdeb1badd93876"
 [[env.staging.kv_namespaces]]
 binding = "INFRA_SECRETS"
 id      = "b9824d3280c54573a24137c7e7143b33"
+
+[[env.staging.r2_buckets]]
+binding     = "STORAGE"
+bucket_name = "f77de112d2019e5456a3198a8bb50bd2"
 
 [[env.staging.workflows]]
 binding    = "ENGINE"

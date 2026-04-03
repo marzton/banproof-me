@@ -12,6 +12,7 @@ type Bindings = {
   DB:       D1Database;
   CACHE:    KVNamespace;
   ENGINE:   Workflow;
+  STORAGE:  R2Bucket;
   /** Service binding → saas-admin-template-customer-workflow */
   WORKFLOW: Fetcher;
   /** Queue producer → goldshore-jobs */

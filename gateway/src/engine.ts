@@ -21,6 +21,7 @@ import type { SentimentResult, OddsResult, AuditAction } from './types/api.js';
 type Env = {
   DB:               D1Database;
   CACHE:            KVNamespace;
+  STORAGE:          R2Bucket;
   USE_MOCK:         string;          // "true" | "false"
   HF_API_TOKEN?:    string;
   ODDS_API_KEY?:    string;
