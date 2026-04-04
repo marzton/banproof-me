@@ -1,0 +1,175 @@
+# ================================================================
+# ██████╗  ██████╗     ███╗   ██╗ ██████╗ ████████╗
+# ██╔══██╗██╔═══██╗    ████╗  ██║██╔═══██╗╚══██╔══╝
+# ██║  ██║██║   ██║    ██╔██╗ ██║██║   ██║   ██║
+# ██║  ██║██║   ██║    ██║╚██╗██║██║   ██║   ██║
+# ██████╔╝╚██████╔╝    ██║ ╚████║╚██████╔╝   ██║
+# ╚═════╝  ╚═════╝     ╚═╝  ╚═══╝ ╚═════╝    ╚═╝
+#  ██████╗ ███████╗██████╗ ██╗      ██████╗ ██╗   ██╗
+# ██╔══██╗██╔════╝██╔══██╗██║     ██╔═══██╗╚██╗ ██╔╝
+# ██║  ██║█████╗  ██████╔╝██║     ██║   ██║ ╚████╔╝
+# ██║  ██║██╔══╝  ██╔═══╝ ██║     ██║   ██║  ╚██╔╝
+# ╚██████╔╝███████╗██║     ███████╗╚██████╔╝   ██║
+#  ╚═════╝ ╚══════╝╚═╝     ╚══════╝ ╚═════╝    ╚═╝
+# ================================================================
+# banproof-core-legacy — ⛔ ARCHIVED REFERENCE ONLY ⛔
+# ================================================================
+#
+#   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#   !!                                                        !!
+#   !!   DO NOT DEPLOY THIS WORKER — EVER.                   !!
+#   !!                                                        !!
+#   !!   This file is kept solely as a code reference for    !!
+#   !!   the Turnstile + session-cookie auth pattern and      !!
+#   !!   the legacy Stripe webhook handler.                   !!
+#   !!                                                        !!
+#   !!   The canonical worker is gateway/ (banproof-core).   !!
+#   !!   All active routes are owned by gateway/.            !!
+#   !!                                                        !!
+#   !!   `wrangler deploy` from this directory will deploy   !!
+#   !!   a conflicting worker with NO routes.  If you run it !!
+#   !!   accidentally, immediately run:                       !!
+#   !!     wrangler delete --name banproof-core-legacy        !!
+#   !!                                                        !!
+#   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#
+# ================================================================
+
+name             = "banproof-core-legacy"
+main             = "src/index.ts"
+compatibility_date  = "2025-09-27"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+# ----------------------------------------------------------------
+# ROUTES
+# Historically, this worker intercepted /api/* calls while other
+# paths fell through to the static site served by the root
+# wrangler.jsonc.
+# ROUTES — removed; gateway/ (banproof-core) now owns
+# banproof.me/api/*
+# ----------------------------------------------------------------
+
+# ----------------------------------------------------------------
+# D1 DATABASE  (binding name: DB)
+# ----------------------------------------------------------------
+# 1. Create the database:
+#      wrangler d1 create prod-core-db
+# 2. Copy the output UUID into `database_id` below.
+# 3. Apply schema:
+#      npm run db:migrate
+# ----------------------------------------------------------------
+[[d1_databases]]
+binding       = "DB"
+database_name = "bp-core-prod"
+database_id   = "54e1a408-4b81-4ca5-b6a4-c2314dc0cf46"
+
+# ----------------------------------------------------------------
+# KV NAMESPACES
+# ----------------------------------------------------------------
+# Session / subscription cache  (binding name: CACHE)
+# Create: npm run kv:create
+# Then copy the resulting id below.
+[[kv_namespaces]]
+binding = "CACHE"
+id      = "af8eb071fce34b5eafbdeb1badd93876"
+
+# Infrastructure secrets — GH_PAT, CF_API_TOKEN, etc.
+# Reuses the namespace provisioned by banproof-audit.
+[[kv_namespaces]]
+binding = "INFRA_SECRETS"
+id      = "b9824d3280c54573a24137c7e7143b33"
+
+# ----------------------------------------------------------------
+# CLOUDFLARE AI  (binding name: AI)
+# No setup required beyond enabling Workers AI on the account.
+# Dashboard → Workers & Pages → Workers AI → Enable
+# ----------------------------------------------------------------
+[ai]
+binding = "AI"
+
+# ----------------------------------------------------------------
+# EMAIL — Cloudflare Email Workers  (binding name: MAILER)
+# ----------------------------------------------------------------
+# Prerequisites (Cloudflare Dashboard):
+#   1. Zone → Email → Email Routing → Enable
+#   2. Add verified destination address: hello@rmarston.com
+#   3. (Optional) Add catch-all rule forwarding to that address
+# Omitting `destination_address` allows sending to any verified
+# address at runtime; add it to lock to one recipient.
+# ----------------------------------------------------------------
+[[send_email]]
+name = "MAILER"
+
+# ----------------------------------------------------------------
+# NON-SECRET ENVIRONMENT VARIABLES
+# Safe to commit — these are public / non-sensitive values.
+# ----------------------------------------------------------------
+[vars]
+# Cloudflare Turnstile — public site key
+# Dashboard → Turnstile → Add Site (or select existing) → Site Key
+TURNSTILE_SITE_KEY = "0x4AAAAAABpjjYpo5oUPFCrE"
+
+# Admin email address (used for Zero Trust Access policy)
+ADMIN_EMAIL = "admin@banproof.me"
+
+# Deployment environment tag
+ENVIRONMENT = "production"
+
+# ----------------------------------------------------------------
+# SECRETS  — upload with wrangler (values never committed to git)
+# ----------------------------------------------------------------
+# Run each command from the worker/ directory:
+#
+#   wrangler secret put TURNSTILE_SECRET_KEY
+#     → Dashboard → Turnstile → your site → "Secret Key"
+#
+#   wrangler secret put STRIPE_SECRET_KEY
+#     → dashboard.stripe.com → Developers → API keys → Secret key
+#       (starts with sk_live_...)
+#
+#   wrangler secret put STRIPE_WEBHOOK_SECRET
+#     → dashboard.stripe.com → Webhooks → endpoint → Signing secret
+#       (starts with whsec_...)
+#
+#   wrangler secret put STRIPE_PRICE_ID_PRO
+#     → dashboard.stripe.com → Product catalogue → Pro plan → Price ID
+#       (starts with price_...)
+#
+#   wrangler secret put MAILCHANNELS_API_KEY
+#     → platform.mailchannels.com → API keys
+#       (used for transactional outbound email via MailChannels)
+#
+#   wrangler secret put CF_API_TOKEN
+#     → dash.cloudflare.com → My Profile → API Tokens → Create Token
+#       Use "Edit Cloudflare Workers" template; scope to banproof.me zone
+#
+#   wrangler secret put GH_PAT
+#     → github.com → Settings → Developer settings →
+#       Personal access tokens → Fine-grained tokens
+#       Permissions: repo:read, workflows:read
+#
+# ----------------------------------------------------------------
+
+# ----------------------------------------------------------------
+# ZERO TRUST / CLOUDFLARE ACCESS — Admin panel protection
+# ----------------------------------------------------------------
+# Configured via Dashboard or the setup script at zero-trust/setup.sh
+#
+# Dashboard path:
+#   one.dash.cloudflare.com → Access → Applications → Add Application
+#
+#   Application type:  Self-hosted
+#   Application name:  banproof-admin
+#   Domain:            admin.banproof.me   (or banproof.me/admin/*)
+#   Session duration:  24h
+#
+#   Policy name:       admin-only
+#   Action:            Allow
+#   Include rule:      Emails → admin@banproof.me
+#
+# The setup script (zero-trust/setup.sh) automates this using the
+# CF_API_TOKEN and CF_ACCOUNT_ID you supply as env vars.
+# ----------------------------------------------------------------

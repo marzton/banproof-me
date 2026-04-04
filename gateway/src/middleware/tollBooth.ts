@@ -1,7 +1,7 @@
 import { MiddlewareHandler } from 'hono';
 import { validateProofOfAgency } from '../validators/proofOfAgency.js';
 
-export const tollBoothMiddleware: MiddlewareHandler = async (c: any, next: any) => {
+export const tollBoothMiddleware: MiddlewareHandler = async (c, next) => {
   console.log(`[Toll Booth] Intercepted ${c.req.method} request to ${c.req.url}`);
   
   const authHeader = c.req.header('Authorization');
@@ -27,7 +27,7 @@ export const tollBoothMiddleware: MiddlewareHandler = async (c: any, next: any) 
   
   // Custom headers to pass on to the handler downstream
   c.set('poaScore', poaResult.score);
-  c.set('userId', token);
+  c.set('userId', 'agent');
 
   await next();
 };
