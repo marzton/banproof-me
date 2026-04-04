@@ -28,9 +28,11 @@ app.get('/api/data/goldshore', (c: any) => {
   });
 });
 
+const port = Number(process.env.PORT ?? 3000);
+
 serve({
   fetch: app.fetch,
-  port: 3000
+  port
 }, (info: any) => {
   console.log(`Toll Booth Gateway running at http://localhost:${info.port}`);
 });
