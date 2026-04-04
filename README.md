@@ -16,7 +16,7 @@ Derived from the systems intelligence of Jack Wren (BBDO, 1948-53).
 | **SOLEFOODNY** | Architecture | Beta Launch (Relocation Review) |
 
 ## 🛰️ Infrastructure: AI VPN & Node Network
-* **Goal:** Establish a DePIN (Decentralentralized Physical Infrastructure Network) for AI agents.
+* **Goal:** Establish a DePIN (Decentralized Physical Infrastructure Network) for AI agents.
 * **Proof of Agency:** Using physical residential nodes to provide "Proof of Humanity" for autonomous crawlers.
 * **Toll Booth Logic:** Monetization via per-request verification and clean data delivery.
 
