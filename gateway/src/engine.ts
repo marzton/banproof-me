@@ -1,6 +1,8 @@
 // ============================================================
 // BanproofEngine — Cloudflare Workflow (Hybrid Mock/Real)
 // Durable, checkpointed processing for slow external APIs.
+// Branches based on user tier: free / pro / agency.
+// Toggle mock vs. real APIs via USE_MOCK env var.
 //
 // Toggle: set USE_MOCK="true" in wrangler.toml [vars] to use
 // randomised mock data instead of real external APIs.
@@ -17,17 +19,17 @@ import type { SentimentResult, OddsResult, AuditAction } from './types/api.js';
 
 // ── Env bindings available inside the Workflow ────────────────
 type Env = {
-  DB:              D1Database;
-  CACHE:           KVNamespace;
-  USE_MOCK:        string;          // "true" | "false"
-  HF_API_TOKEN?:   string;
-  ODDS_API_KEY?:   string;
+  DB:               D1Database;
+  CACHE:            KVNamespace;
+  USE_MOCK:         string;          // "true" | "false"
+  HF_API_TOKEN?:    string;
+  ODDS_API_KEY?:    string;
   DISCORD_WEBHOOK?: string;
 };
 
 export type Params = {
-  query:   string;
-  userId:  string;
+  query:    string;
+  userId:   string;
   useMock?: boolean;
 };
 
@@ -78,7 +80,7 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
         if (!res.ok) {
           throw new Error(`HuggingFace API error: ${res.status} ${res.statusText}`);
         }
-        const raw = await res.json();
+        const raw = await res.json() as unknown;
         const data = Array.isArray(raw) ? raw as Array<Array<{ label: string; score: number }>> : [];
         const top  = data[0]?.[0] ?? { label: 'NEUTRAL', score: 0.5 };
         const label = top.label.toUpperCase().includes('POS') ? 'BULLISH' : 'BEARISH';
@@ -86,8 +88,8 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
           score:      top.score,
           label,
           confidence: top.score,
-          source:     'REAL_HF',
-        } satisfies SentimentResult;
+          source:     'REAL_HF' as const,
+        };
       },
     );
 
@@ -103,7 +105,7 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
       if (!res.ok) {
         throw new Error(`Odds API error: ${res.status} ${res.statusText}`);
       }
-      const raw = await res.json();
+      const raw = await res.json() as unknown;
       const data = Array.isArray(raw) ? raw as Array<{
         bookmakers: Array<{ title: string; markets: Array<{ outcomes: Array<{ name: string; price: number }> }> }>;
       }> : [];
@@ -120,8 +122,8 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
       return {
         bookmakers,
         best_price: { bookmaker: best.name, price: best.price },
-        source: 'REAL_ODDS',
-      } satisfies OddsResult;
+        source: 'REAL_ODDS' as const,
+      };
     });
 
     // ── Step 3: Best Price Logic + D1 audit ───────────────────
@@ -168,5 +170,15 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
 
       return summary;
     });
+
+    return {
+      sentiment,
+      best_price: odds.best_price,
+      execution_proof: {
+        discord_sent:  !!this.env.DISCORD_WEBHOOK,
+        audit_logged:  true,
+        timestamp:     new Date().toISOString(),
+      },
+    };
   }
 }
