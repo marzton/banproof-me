@@ -15,7 +15,7 @@ function jitter(base: number): number {
   return base + Math.floor(Math.random() * 11) - 5;
 }
 
-function classifyValue(price: number): NonNullable<Bookmaker['value']> {
+function classifyValue(price: number): 'EV+' | 'EV-' | 'FAIR' {
   if (price > -108) return 'EV+';
   if (price < -115) return 'EV-';
   return 'FAIR';
@@ -36,5 +36,5 @@ export function mockOdds(): OddsResult {
     bookmakers,
     best_price: { bookmaker: best.name, price: best.price },
     source: 'MOCK_ODDS',
-  };
+  } satisfies OddsResult;
 }

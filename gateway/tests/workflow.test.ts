@@ -36,17 +36,18 @@ describe('mockSentiment', () => {
 // ── Odds mock tests ───────────────────────────────────────────
 
 describe('mockOdds', () => {
-  it('returns exactly 3 bookmakers', () => {
+  it('returns 4 bookmakers', () => {
     const result = mockOdds();
-    expect(result.bookmakers).toHaveLength(3);
+    expect(result.bookmakers).toHaveLength(4);
   });
 
-  it('returns DraftKings, FanDuel, and BetMGM', () => {
+  it('returns expected bookmakers', () => {
     const result = mockOdds();
     const names  = result.bookmakers.map((b) => b.name);
     expect(names).toContain('DraftKings');
     expect(names).toContain('FanDuel');
     expect(names).toContain('BetMGM');
+    expect(names).toContain('Caesars');
   });
 
   it('prices are in the American odds range -125 to -95', () => {
