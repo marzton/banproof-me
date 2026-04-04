@@ -8,7 +8,6 @@ const BASE_BOOKMAKERS: Array<Omit<Bookmaker, 'value'>> = [
   { name: 'DraftKings', price: -110, spread: -1.5 },
   { name: 'FanDuel',    price: -115, spread: -1.5 },
   { name: 'BetMGM',     price: -108, spread: -1.5 },
-  { name: 'Caesars',    price: -112, spread: -1.5 },
 ];
 
 function jitter(base: number): number {
@@ -16,7 +15,7 @@ function jitter(base: number): number {
   return base + Math.floor(Math.random() * 11) - 5;
 }
 
-function classifyValue(price: number): Bookmaker['value'] {
+function classifyValue(price: number): 'EV+' | 'EV-' | 'FAIR' {
   if (price > -108) return 'EV+';
   if (price < -115) return 'EV-';
   return 'FAIR';
@@ -37,5 +36,5 @@ export function mockOdds(): OddsResult {
     bookmakers,
     best_price: { bookmaker: best.name, price: best.price },
     source: 'MOCK_ODDS',
-  };
+  } satisfies OddsResult;
 }

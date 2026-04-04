@@ -25,22 +25,39 @@ describe('mockSentiment', () => {
     expect(labels.has('BULLISH')).toBe(true);
     expect(labels.has('BEARISH')).toBe(true);
   });
+
+  it('score and confidence are numbers with 3 decimal places max', () => {
+    const { score, confidence } = mockSentiment();
+    expect(String(score).split('.')[1]?.length ?? 0).toBeLessThanOrEqual(3);
+    expect(String(confidence).split('.')[1]?.length ?? 0).toBeLessThanOrEqual(3);
+  });
 });
 
 // ── Odds mock tests ───────────────────────────────────────────
 
 describe('mockOdds', () => {
-  it('returns at least 3 bookmakers', () => {
+  it('returns 4 bookmakers', () => {
     const result = mockOdds();
-    expect(result.bookmakers.length).toBeGreaterThanOrEqual(3);
+    expect(result.bookmakers).toHaveLength(4);
   });
 
-  it('returns DraftKings, FanDuel, and BetMGM', () => {
+  it('returns expected bookmakers', () => {
     const result = mockOdds();
     const names  = result.bookmakers.map((b) => b.name);
     expect(names).toContain('DraftKings');
     expect(names).toContain('FanDuel');
     expect(names).toContain('BetMGM');
+    expect(names).toContain('Caesars');
+  });
+
+  it('prices are in the American odds range -125 to -95', () => {
+    for (let i = 0; i < 20; i++) {
+      const { bookmakers } = mockOdds();
+      bookmakers.forEach(({ price }) => {
+        expect(price).toBeGreaterThanOrEqual(-125);
+        expect(price).toBeLessThanOrEqual(-95);
+      });
+    }
   });
 
   it('best_price bookmaker has the highest price', () => {
