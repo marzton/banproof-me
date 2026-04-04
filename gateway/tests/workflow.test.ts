@@ -50,6 +50,16 @@ describe('mockOdds', () => {
     expect(names).toContain('Caesars');
   });
 
+  it('prices are in the American odds range -125 to -95', () => {
+    for (let i = 0; i < 20; i++) {
+      const { bookmakers } = mockOdds();
+      bookmakers.forEach(({ price }) => {
+        expect(price).toBeGreaterThanOrEqual(-125);
+        expect(price).toBeLessThanOrEqual(-95);
+      });
+    }
+  });
+
   it('best_price bookmaker has the highest price', () => {
     for (let i = 0; i < 10; i++) {
       const { bookmakers, best_price } = mockOdds();
