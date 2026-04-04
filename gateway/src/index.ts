@@ -14,6 +14,21 @@ import { authMiddleware } from './middleware/auth.js';
 
 // ── Bindings type ─────────────────────────────────────────────
 type Bindings = {
+  DB:       D1Database;
+  CACHE:    KVNamespace;
+  ENGINE:   Workflow;
+  STORAGE:  R2Bucket;
+  /** Service binding → saas-admin-template-customer-workflow */
+  WORKFLOW: Fetcher;
+  /** Queue producer → goldshore-jobs */
+  QUEUE:    Queue<QueueJobMessage>;
+};
+
+// ── Queue message schema ──────────────────────────────────────
+type QueueJobMessage = {
+  /** Discriminates the job variant (e.g. 'sync_user', 'send_email'). */
+  type: string;
+  payload: Record<string, unknown>;
   // D1 database
   DB:               D1Database;
   // KV namespaces
@@ -209,5 +224,31 @@ app.onError((err, c) => {
 });
 
 // ── Exports ───────────────────────────────────────────────────
+// Export the Durable-Object–style engine class so Wrangler can
+// register it as the [[workflows]] class_name.
 export { BanproofEngine };
-export default app;
+
+// Export as an ExportedHandler object so the runtime can invoke
+// both the HTTP fetch handler (Hono) and the queue consumer.
+export default {
+  fetch: app.fetch.bind(app),
+
+  // ── Queue consumer: goldshore-jobs ─────────────────────────
+  // Invoked by the Cloudflare runtime for each message batch
+  // delivered from the goldshore-jobs queue.
+  async queue(
+    batch: MessageBatch<QueueJobMessage>,
+    _env: Bindings,
+  ): Promise<void> {
+    for (const message of batch.messages) {
+      try {
+        // TODO: dispatch message.body.type to the appropriate handler.
+        // Example: if (message.body.type === 'sync_user') { ... }
+        message.ack();
+      } catch {
+        // Returning without ack() causes the runtime to retry the message.
+        message.retry();
+      }
+    }
+  },
+};
