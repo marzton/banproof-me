@@ -24,7 +24,7 @@ app.post('/api/verify', async (c) => {
     return c.json({ error: 'Invalid JSON body' }, 400);
   }
 
-  return c.json({ message: 'Payload verified and logged', data: body });
+  return c.json({ message: 'Payload verified', data: body });
 });
 
 app.get('/api/data/goldshore', (c) => {
