@@ -1,0 +1,13 @@
+.git
+.github
+.wrangler
+node_modules
+gateway
+worker
+packages
+apps
+zero-trust
+admin
+cloudflare-dashboard
+dist
+coverage

@@ -1,5 +1,5 @@
 {
-  "name": "banproof-gateway",
+  "name": "banproof-core",
   "version": "1.0.0",
   "description": "Banproof Core Gateway — Cloudflare Worker with D1, KV, Workflows, and AI",
   "type": "module",
@@ -11,6 +11,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@goldshore/identity": "file:../packages/identity",
     "hono": "^4.6.14"
   },
   "devDependencies": {

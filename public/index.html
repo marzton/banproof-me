@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Banproof — AI Gateway & Proof of Agency Network. Verified traffic. Clean data. Residential nodes.">
+  <title>Banproof — AI Gateway</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/banproof.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-left">
+    <a class="nav-logo" href="/">ban<span>proof</span></a>
+    <span class="nav-tag">Beta</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#nodes">Node network</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#cloudflare-status">Cloudflare status</a></li>
+  </ul>
+  <a href="#pricing" class="nav-cta" data-modal="general">Get access</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">
+      <span class="eyebrow-dot"></span>
+      <span class="eyebrow-text">Network operational · 94 nodes live</span>
+    </div>
+    <h1>The AI <span class="accent">gateway</span><br>for durable signal <span class="accent">highs</span>.</h1>
+    <p class="hero-desc">
+      Banproof filters AI agent traffic through a residential DePIN node network. Every request gets a Proof of Agency score. Clean data in. Verified signals out.
+    </p>
+    <div class="hero-actions">
+      <a href="#pricing" class="btn-primary" data-modal="general">Request access</a>
+      <a href="#how" class="btn-ghost">See how it works</a>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <!-- Live terminal feed -->
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <span class="terminal-title">toll-booth.gateway · live feed</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-dim">12:41:03</span> <span class="t-green">PASS</span>  <span class="t-blue">100.100.100.1</span>  <span class="t-dim">PoA:95</span>  <span class="t-dim">DePIN node verified</span></div>
+        <div><span class="t-dim">12:41:04</span> <span class="t-red">DENY</span>  <span class="t-dim">45.21.99.1</span>      <span class="t-dim">PoA:12</span>  <span class="t-red">Datacenter IP rejected</span></div>
+        <div><span class="t-dim">12:41:04</span> <span class="t-green">PASS</span>  <span class="t-blue">100.200.200.2</span>  <span class="t-dim">PoA:91</span>  <span class="t-dim">Residential match</span></div>
+        <div><span class="t-dim">12:41:05</span> <span class="t-amber">WARN</span>  <span class="t-dim">201.55.12.98</span>   <span class="t-dim">PoA:44</span>  <span class="t-amber">Rate limit throttled</span></div>
+        <div><span class="t-dim">12:41:06</span> <span class="t-green">PASS</span>  <span class="t-blue">100.100.100.1</span>  <span class="t-dim">PoA:95</span>  <span class="t-dim">Gold Shore agent</span></div>
+        <div><span class="t-dim">12:41:07</span> <span class="t-red">DENY</span>  <span class="t-dim">192.168.1.1</span>    <span class="t-dim">PoA:08</span>  <span class="t-red">Token invalid</span></div>
+        <div><span class="t-dim">12:41:08</span> <span class="t-green">PASS</span>  <span class="t-blue">100.200.200.2</span>  <span class="t-dim">PoA:88</span>  <span class="t-dim">Wayward crawler</span></div>
+        <div><span class="t-dim">12:41:09</span> <span class="t-white">›</span> <span class="t-cursor"></span></div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-row">
+      <div class="stat-cell">
+        <div class="stat-val">94<span class="unit"> nodes</span></div>
+        <div class="stat-label">DePIN network live</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val">99.2<span class="unit">%</span></div>
+        <div class="stat-label">Detection accuracy</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val">&lt;8<span class="unit">ms</span></div>
+        <div class="stat-label">Avg verification</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <p class="section-tag">// How it works</p>
+    <h2>Four steps from request<br>to <span class="acc">verified signal.</span></h2>
+    <div class="steps reveal">
+      <div class="step">
+        <span class="step-num">01 —</span>
+        <span class="step-icon">⬡</span>
+        <p class="step-title">Request intercepted</p>
+        <p class="step-desc">Every inbound request hits the Toll Booth middleware before reaching your API. Bearer token extracted, IP captured.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">02 —</span>
+        <span class="step-icon">◈</span>
+        <p class="step-title">PoA validation</p>
+        <p class="step-desc">Proof of Agency check: token verified against env secrets, IP cross-referenced against the live Tailscale DePIN registry.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">03 —</span>
+        <span class="step-icon">◉</span>
+        <p class="step-title">Risk scored</p>
+        <p class="step-desc">Each request receives a DRS score 0–100. LOW/MEDIUM/HIGH risk levels gate access. High-risk traffic is rejected with reason.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">04 —</span>
+        <span class="step-icon">⬡</span>
+        <p class="step-title">Clean delivery</p>
+        <p class="step-desc">Verified agents pass through with their PoA score injected as a header. Downstream services can trust the payload.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section>
+  <div class="container">
+    <p class="section-tag">// Use cases</p>
+    <h2>Built for agents that<br>need to <span class="acc">prove themselves.</span></h2>
+    <div class="use-cases reveal">
+      <div class="use-case">
+        <p class="uc-tag">AI Crawlers</p>
+        <p class="uc-title">Residential-masked web agents</p>
+        <p class="uc-desc">Run autonomous crawlers through verified residential exit nodes. Bypass bot detection without spoofing — your agents are genuinely routed through real addresses.</p>
+      </div>
+      <div class="use-case">
+        <p class="uc-tag">Data pipelines</p>
+        <p class="uc-title">Signal quality enforcement</p>
+        <p class="uc-desc">Every data source that feeds your models passes through PoA scoring. Dirty signals from scrapers and bots never reach your training pipeline.</p>
+      </div>
+      <div class="use-case">
+        <p class="uc-tag">API security</p>
+        <p class="uc-title">Agent identity at the edge</p>
+        <p class="uc-desc">Protect your API endpoints from unverified AI traffic. Know exactly which agents are calling, with what trust level, on every single request.</p>
+      </div>
+      <div class="use-case">
+        <p class="uc-tag">DePIN nodes</p>
+        <p class="uc-title">Earn by running a node</p>
+        <p class="uc-desc">Host a Tailscale exit node and join the registry. Verified residential nodes earn per-request fees when they route validated agent traffic.</p>
+      </div>
+      <div class="use-case">
+        <p class="uc-tag">Agentic IDE</p>
+        <p class="uc-title">Autonomous dev workflows</p>
+        <p class="uc-desc">Codex, Jules, and other coding agents can prove their identity and context. Verified agent sessions get elevated scope on your protected infra.</p>
+      </div>
+      <div class="use-case">
+        <p class="uc-tag">Compliance</p>
+        <p class="uc-title">Auditable agent activity</p>
+        <p class="uc-desc">Every agent interaction is logged with a PoA score, IP, timestamp, and risk level. Full audit trail for regulatory and internal review.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NODE NETWORK -->
+<section id="nodes">
+  <div class="container">
+    <p class="section-tag">// Node network</p>
+    <h2>A live <span class="acc">DePIN registry</span><br>of verified exit nodes.</h2>
+    <div class="node-grid reveal">
+      <div class="node-left">
+        <div class="node-list">
+          <div class="node-item">
+            <span class="node-id">node-001</span>
+            <span class="node-loc">New York, US</span>
+            <div class="node-status"><span class="node-dot dot-live"></span><span class="node-score">PoA 95</span></div>
+          </div>
+          <div class="node-item">
+            <span class="node-id">node-002</span>
+            <span class="node-loc">Los Angeles, US</span>
+            <div class="node-status"><span class="node-dot dot-live"></span><span class="node-score">PoA 91</span></div>
+          </div>
+          <div class="node-item">
+            <span class="node-id">node-007</span>
+            <span class="node-loc">Chicago, US</span>
+            <div class="node-status"><span class="node-dot dot-live"></span><span class="node-score">PoA 88</span></div>
+          </div>
+          <div class="node-item">
+            <span class="node-id">node-014</span>
+            <span class="node-loc">London, UK</span>
+            <div class="node-status"><span class="node-dot dot-warn"></span><span class="node-score">PoA 61</span></div>
+          </div>
+          <div class="node-item">
+            <span class="node-id">node-021</span>
+            <span class="node-loc">Toronto, CA</span>
+            <div class="node-status"><span class="node-dot dot-live"></span><span class="node-score">PoA 93</span></div>
+          </div>
+          <div class="node-item">
+            <span class="node-id">node-038</span>
+            <span class="node-loc">Miami, US</span>
+            <div class="node-status"><span class="node-dot dot-dead"></span><span class="node-score">Offline</span></div>
+          </div>
+          <div class="node-item" style="color:var(--muted); justify-content:center; font-size:0.65rem; letter-spacing:0.08em;">
+            + 88 more nodes across 14 regions
+          </div>
+        </div>
+      </div>
+      <div class="node-right">
+        <p class="legend-title">Network health</p>
+        <div class="legend-item">
+          <span class="legend-dot dot-live"></span>
+          <span class="legend-label">Live nodes</span>
+          <span class="legend-val">87</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot dot-warn"></span>
+          <span class="legend-label">Degraded</span>
+          <span class="legend-val">4</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot dot-dead"></span>
+          <span class="legend-label">Offline</span>
+          <span class="legend-val">3</span>
+        </div>
+        <div class="legend-item" style="margin-top:1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+          <span class="legend-label">Avg PoA score</span>
+          <span class="legend-val" style="color:var(--green)">89.4</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-label">Requests / hour</span>
+          <span class="legend-val">12,840</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-label">Pass rate</span>
+          <span class="legend-val" style="color:var(--green)">68.3%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOCS / CLOUDFLARE -->
+<div id="docs"></div>
+<section id="cloudflare-status">
+  <div class="container">
+    <p class="section-tag">// Cloudflare status</p>
+    <h2>Cloudflare edge<br><span class="acc">integration status.</span></h2>
+    <div class="cf-panel reveal">
+      <p style="font-size:0.8rem; color:var(--muted);">
+        This public site verifies Cloudflare edge connectivity in real time using the Cloudflare speed test metadata endpoint.
+      </p>
+      <div class="cf-grid">
+        <div class="cf-item"><span class="cf-label">Zone</span><span id="cf-zone" class="cf-value">Checking…</span></div>
+        <div class="cf-item"><span class="cf-label">Provider</span><span class="cf-value">Cloudflare</span></div>
+        <div class="cf-item"><span class="cf-label">Edge colo</span><span id="cf-colo" class="cf-value">Checking…</span></div>
+        <div class="cf-item"><span class="cf-label">Region</span><span id="cf-region" class="cf-value">Checking…</span></div>
+        <div class="cf-item"><span class="cf-label">ASN</span><span id="cf-asn" class="cf-value">Checking…</span></div>
+        <div class="cf-item"><span class="cf-label">Status</span><span id="cf-status" class="cf-value" style="color:var(--amber)">Connecting…</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="container">
+    <p class="section-tag">// Pricing</p>
+    <h2>Start verifying.<br><span class="acc">Pay as you grow.</span></h2>
+    <div class="pricing-grid reveal">
+      <div class="price-card">
+        <p class="price-tier">Developer</p>
+        <div class="price-amount">$0<span class="price-unit"> /mo</span></div>
+        <p class="price-sub">10k requests / month included</p>
+        <ul class="price-features">
+          <li>Toll Booth middleware</li>
+          <li>PoA scoring (basic)</li>
+          <li>10k verified requests</li>
+          <li>Community node routing</li>
+          <li class="dim">Priority node selection</li>
+          <li class="dim">Audit logs</li>
+          <li class="dim">SLA guarantee</li>
+        </ul>
+        <a href="mailto:hello@rmarston.com" class="btn-ghost" data-modal="developer" style="display:block; text-align:center;">Get started free</a>
+      </div>
+
+      <div class="price-card featured">
+        <p class="price-tier">Pro</p>
+        <div class="price-amount">$49<span class="price-unit"> /mo</span></div>
+        <p class="price-sub">500k requests included · $0.08 per 1k after</p>
+        <ul class="price-features">
+          <li>Everything in Developer</li>
+          <li>PoA scoring (advanced DRS)</li>
+          <li>500k verified requests</li>
+          <li>Priority residential nodes</li>
+          <li>Full audit log export</li>
+          <li>Custom risk thresholds</li>
+          <li class="dim">Dedicated node pool</li>
+        </ul>
+        <a href="mailto:hello@rmarston.com" class="btn-primary" data-modal="pro" style="display:block; text-align:center;">Start Pro trial</a>
+      </div>
+
+      <div class="price-card">
+        <p class="price-tier">Enterprise</p>
+        <div class="price-amount" style="font-size:1.8rem;">Custom</div>
+        <p class="price-sub">Volume pricing · SLA · dedicated infra</p>
+        <ul class="price-features">
+          <li>Everything in Pro</li>
+          <li>Dedicated node pool</li>
+          <li>Custom PoA policy rules</li>
+          <li>99.9% uptime SLA</li>
+          <li>Private Tailscale network</li>
+          <li>Onboarding & support</li>
+          <li>White-label option</li>
+        </ul>
+        <a href="mailto:hello@rmarston.com" class="btn-ghost" data-modal="enterprise" style="display:block; text-align:center;">Contact us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-banner">
+  <div class="cta-inner">
+    <div class="cta-text">
+      <h2>Your agents are calling.<br><span class="acc">Are they verified?</span></h2>
+      <p class="cta-sub">Join the early access list. First 50 developers get Pro free for 3 months.</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:1rem; min-width:260px;">
+      <a href="mailto:hello@rmarston.com" class="btn-primary" data-modal="general" style="text-align:center;">Request early access</a>
+      <a href="https://github.com/marzton/banproof.me" target="_blank" class="btn-ghost" style="text-align:center;">View on GitHub ↗</a>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <a class="footer-logo" href="/">ban<span>proof</span>.me</a>
+    <ul class="footer-links">
+      <li><a href="#">Docs</a></li>
+      <li><a href="#">GitHub</a></li>
+      <li><a href="https://goldshore.ai">Gold Shore Labs</a></li>
+      <li><a href="https://rmarston.com">rmarston.com</a></li>
+    </ul>
+    <span>© 2026 Gold Shore Labs</span>
+  </div>
+</footer>
+
+<!-- ACCESS MODAL -->
+<div id="access-modal" class="modal-backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-desc">
+    <div class="modal-header">
+      <p class="modal-title" id="modal-title">Request <span>access.</span></p>
+      <button class="modal-close" id="modal-close-btn" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc" id="modal-desc">
+        Join the early access list. First 50 developers get Pro free for 3 months. We'll follow up within one business day.
+      </p>
+      <form class="modal-form" id="modal-form">
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label" for="modal-name">Name</label>
+            <input class="form-input" id="modal-name" type="text" placeholder="Your name" required autocomplete="name">
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="modal-email">Email</label>
+            <input class="form-input" id="modal-email" type="email" placeholder="you@company.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="modal-tier">Plan interest</label>
+          <select class="form-select" id="modal-tier">
+            <option value="developer">Developer — Free</option>
+            <option value="pro">Pro — $49 / mo</option>
+            <option value="enterprise">Enterprise — Custom</option>
+            <option value="general">Not sure yet</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="modal-notes">Use case <span style="color:var(--dim)">(optional)</span></label>
+          <textarea class="form-textarea" id="modal-notes" placeholder="Briefly describe what you're building or what support you need…"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="modal-submit" id="modal-submit">Send request</button>
+          <button type="button" class="modal-cancel" id="modal-cancel-btn">Cancel</button>
+        </div>
+      </form>
+      <div class="modal-success" id="modal-success" role="status">
+        <div class="modal-success-icon">◉</div>
+        <p class="modal-success-title">Email draft opened.</p>
+        <p class="modal-success-msg">We've opened an email draft in your mail client. Please review and send it to complete your access request. Keep an eye on <span id="modal-success-email" style="color:var(--text)"></span> for our reply.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/banproof.js" defer></script>
+</body>
+</html>
