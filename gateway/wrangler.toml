@@ -86,6 +86,11 @@ binding    = "ENGINE"
 name       = "banproof-engine"
 class_name = "BanproofEngine"
 
+[[workflows]]
+binding    = "PURCHASE_WORKFLOW"
+name       = "subscription-purchase"
+class_name = "SubscriptionPurchaseWorkflow"
+
 # ── Cloudflare AI (binding: AI) ───────────────────────────────
 [ai]
 binding = "AI"
@@ -150,6 +155,11 @@ binding    = "ENGINE"
 name       = "banproof-engine"
 class_name = "BanproofEngine"
 
+[[env.development.workflows]]
+binding    = "PURCHASE_WORKFLOW"
+name       = "subscription-purchase-dev"
+class_name = "SubscriptionPurchaseWorkflow"
+
 [env.development.ai]
 binding = "AI"
 
@@ -195,6 +205,11 @@ bucket_name = "f77de112d2019e5456a3198a8bb50bd2"
 binding    = "ENGINE"
 name       = "banproof-engine"
 class_name = "BanproofEngine"
+
+[[env.staging.workflows]]
+binding    = "PURCHASE_WORKFLOW"
+name       = "subscription-purchase-staging"
+class_name = "SubscriptionPurchaseWorkflow"
 
 [env.staging.ai]
 binding = "AI"
