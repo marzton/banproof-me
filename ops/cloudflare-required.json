@@ -1,0 +1,18 @@
+{
+  "zone_name": "banproof.me",
+  "required_dns": [
+    "api.banproof.me",
+    "admin.banproof.me",
+    "preview.banproof.me"
+  ],
+  "required_routes": [
+    "api.banproof.me/*",
+    "admin.banproof.me/*",
+    "preview.banproof.me/*"
+  ],
+  "forbidden_routes": [
+    "banproof.me/*",
+    "www.banproof.me/*"
+  ],
+  "required_kv_namespaces": []
+}
