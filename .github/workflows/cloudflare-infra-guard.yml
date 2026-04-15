@@ -1,0 +1,49 @@
+name: Cloudflare Infra Guard
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify-cloudflare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: test -f ops/cloudflare-required.json
+      - name: Verify Cloudflare token is present
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: test -n "$CLOUDFLARE_API_TOKEN" || (echo "Missing CLOUDFLARE_API_TOKEN" && exit 1)
+      - name: Validate routes and DNS
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          def cf_get(url):
+              req = urllib.request.Request(url, headers={'Authorization': f"Bearer {os.environ['CLOUDFLARE_API_TOKEN']}", 'Content-Type': 'application/json'})
+              with urllib.request.urlopen(req) as resp:
+                  data = json.loads(resp.read().decode())
+              if not data.get('success'):
+                  raise SystemExit(f"Cloudflare API error for {url}: {data}")
+              return data['result']
+          cfg = json.load(open('ops/cloudflare-required.json', 'r', encoding='utf-8'))
+          zone_name = urllib.parse.quote(cfg['zone_name'])
+          zones = cf_get(f"https://api.cloudflare.com/client/v4/zones?name={zone_name}")
+          if not zones:
+              raise SystemExit(f"Zone not found: {cfg['zone_name']}")
+          zone_id = zones[0]['id']
+          route_patterns = [r.get('pattern') for r in cf_get(f"https://api.cloudflare.com/client/v4/zones/{zone_id}/workers/routes")]
+          for pattern in cfg.get('required_routes', []):
+              if pattern not in route_patterns:
+                  raise SystemExit(f"Missing required worker route: {pattern}")
+          for pattern in cfg.get('forbidden_routes', []):
+              if pattern in route_patterns:
+                  raise SystemExit(f"Forbidden worker route still present: {pattern}")
+          for hostname in cfg.get('required_dns', []):
+              encoded = urllib.parse.quote(hostname)
+              if not cf_get(f"https://api.cloudflare.com/client/v4/zones/{zone_id}/dns_records?name={encoded}"):
+                  raise SystemExit(f"Missing required DNS record: {hostname}")
+          print('Cloudflare infra guard passed.')
+          PY
