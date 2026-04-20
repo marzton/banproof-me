@@ -1,722 +1,395 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="Banproof — Proof of Agency for AI systems. Know what your AI did, why it did it, and who authorized it."/>
-  <title>Banproof — Proof of Agency</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-
-  <style>
-    :root {
-      --void:      #020408;
-      --deep:      #060d14;
-      --surface:   #0a1520;
-      --surface2:  #0f1e2e;
-      --border:    rgba(0,255,136,0.12);
-      --border-dim:rgba(255,255,255,0.05);
-      --green:     #00ff88;
-      --green-dim: rgba(0,255,136,0.15);
-      --green-glow:rgba(0,255,136,0.06);
-      --amber:     #ffb800;
-      --amber-dim: rgba(255,184,0,0.12);
-      --text:      #d4e8d4;
-      --muted:     rgba(212,232,212,0.5);
-      --faint:     rgba(212,232,212,0.25);
-      --mono:      'Space Mono', monospace;
-      --sans:      'Space Grotesk', system-ui, sans-serif;
-      --gold:      #c9a84c;  /* GSL brand */
-    }
-
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { font-size: 16px; scroll-behavior: smooth; }
-
-    body {
-      font-family: var(--sans);
-      background: var(--void);
-      color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-    }
-
-    /* Scanline overlay */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,255,136,0.008) 2px,
-        rgba(0,255,136,0.008) 4px
-      );
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* Radial glow */
-    body::after {
-      content: '';
-      position: fixed;
-      top: -20vh;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100vw;
-      height: 80vh;
-      background: radial-gradient(ellipse, rgba(0,255,136,0.04) 0%, transparent 65%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* ── NAV ── */
-    nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 200;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1.25rem 3rem;
-      background: rgba(2,4,8,0.85);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border-dim);
-    }
-
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      text-decoration: none;
-    }
-
-    /* BP mark — shield with checkmark */
-    .bp-mark {
-      width: 28px;
-      height: 28px;
-      border: 1.5px solid var(--green);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      clip-path: polygon(50% 0%, 100% 20%, 100% 80%, 50% 100%, 0% 80%, 0% 20%);
-      background: var(--green-glow);
-    }
-
-    .bp-mark::after {
-      content: '✓';
-      font-size: 0.75rem;
-      color: var(--green);
-      line-height: 1;
-    }
-
-    .nav-name {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      letter-spacing: 0.08em;
-      color: var(--green);
-      font-weight: 700;
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 2.5rem;
-      list-style: none;
-    }
-
-    .nav-links a {
-      font-family: var(--mono);
-      font-size: 0.62rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      text-decoration: none;
-      transition: color 200ms;
-    }
-
-    .nav-links a:hover { color: var(--green); }
-
-    /* ── HERO ── */
-    .hero {
-      position: relative;
-      z-index: 1;
-      padding: 11rem 3rem 6rem;
-      max-width: 1280px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .hero-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-family: var(--mono);
-      font-size: 0.6rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--green);
-      border: 1px solid var(--border);
-      padding: 0.35rem 0.75rem;
-      margin-bottom: 2.5rem;
-      background: var(--green-glow);
-    }
-
-    .hero-tag::before {
-      content: '';
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: blink 2s infinite;
-    }
-
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
-
-    .hero-title {
-      font-family: var(--sans);
-      font-size: clamp(3rem, 6vw, 6.5rem);
-      font-weight: 600;
-      line-height: 1.0;
-      letter-spacing: -0.03em;
-      color: white;
-      margin-bottom: 2rem;
-      max-width: 18ch;
-    }
-
-    .hero-title .accent { color: var(--green); }
-
-    .hero-sub {
-      font-size: 1.15rem;
-      font-weight: 300;
-      color: var(--muted);
-      line-height: 1.75;
-      max-width: 52ch;
-      margin-bottom: 3rem;
-    }
-
-    .hero-sub strong { color: var(--text); font-weight: 400; }
-
-    .hero-actions {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      margin-bottom: 5rem;
-    }
-
-    .btn-green {
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      background: var(--green);
-      color: var(--void);
-      border: 1px solid var(--green);
-      padding: 0.85rem 2rem;
-      text-decoration: none;
-      font-weight: 700;
-      transition: all 200ms;
-      cursor: pointer;
-    }
-
-    .btn-green:hover { background: transparent; color: var(--green); }
-
-    .btn-outline {
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      background: transparent;
-      color: var(--green);
-      border: 1px solid var(--border);
-      padding: 0.85rem 2rem;
-      text-decoration: none;
-      transition: all 200ms;
-    }
-
-    .btn-outline:hover { border-color: var(--green); background: var(--green-glow); }
-
-    /* ── TERMINAL FEED ── */
-    .terminal {
-      background: var(--deep);
-      border: 1px solid var(--border);
-      padding: 1.5rem 1.75rem;
-      max-width: 700px;
-      position: relative;
-    }
-
-    .terminal::before {
-      content: '';
-      position: absolute;
-      top: -1px; left: 0;
-      width: 40%;
-      height: 2px;
-      background: linear-gradient(90deg, var(--green), transparent);
-    }
-
-    .terminal-header {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 1.25rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 1px solid var(--border-dim);
-    }
-
-    .terminal-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-    }
-
-    .dot-red   { background: #ff5f57; }
-    .dot-amber { background: #febc2e; }
-    .dot-green { background: #28c840; }
-
-    .terminal-title {
-      font-family: var(--mono);
-      font-size: 0.6rem;
-      letter-spacing: 0.1em;
-      color: var(--faint);
-      margin-left: 0.5rem;
-    }
-
-    .log-line {
-      font-family: var(--mono);
-      font-size: 0.68rem;
-      line-height: 1.8;
-      display: flex;
-      gap: 1rem;
-    }
-
-    .log-ts { color: var(--faint); flex-shrink: 0; }
-    .log-ok  { color: var(--green); }
-    .log-warn { color: var(--amber); }
-    .log-key { color: #64b5f6; }
-    .log-val { color: var(--text); }
-
-    .cursor {
-      display: inline-block;
-      width: 8px;
-      height: 13px;
-      background: var(--green);
-      animation: cursor-blink 1.2s infinite;
-      vertical-align: text-bottom;
-      margin-left: 2px;
-    }
-
-    @keyframes cursor-blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-
-    /* ── WHAT IS PoA ── */
-    .what-is {
-      position: relative;
-      z-index: 1;
-      padding: 5rem 3rem;
-      border-top: 1px solid var(--border-dim);
-      max-width: 1280px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .section-eyebrow {
-      font-family: var(--mono);
-      font-size: 0.58rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--green);
-      margin-bottom: 1.5rem;
-    }
-
-    .section-title {
-      font-size: clamp(1.75rem, 3vw, 2.75rem);
-      font-weight: 500;
-      color: white;
-      line-height: 1.2;
-      letter-spacing: -0.02em;
-      margin-bottom: 1.25rem;
-      max-width: 28ch;
-    }
-
-    .section-body {
-      font-size: 1rem;
-      font-weight: 300;
-      color: var(--muted);
-      line-height: 1.8;
-      max-width: 54ch;
-      margin-bottom: 3rem;
-    }
-
-    .poa-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1px;
-      background: var(--border-dim);
-    }
-
-    .poa-card {
-      background: var(--deep);
-      padding: 2rem 1.75rem;
-      border: 1px solid transparent;
-      transition: border-color 200ms, background 200ms;
-    }
-
-    .poa-card:hover { border-color: var(--border); background: var(--surface); }
-
-    .poa-icon {
-      font-family: var(--mono);
-      font-size: 1.2rem;
-      color: var(--green);
-      margin-bottom: 1rem;
-      opacity: 0.8;
-    }
-
-    .poa-title {
-      font-size: 1rem;
-      font-weight: 500;
-      color: white;
-      margin-bottom: 0.6rem;
-      letter-spacing: -0.01em;
-    }
-
-    .poa-desc {
-      font-size: 0.83rem;
-      font-weight: 300;
-      color: var(--muted);
-      line-height: 1.65;
-    }
-
-    /* ── SCALE SECTION ── */
-    .scale-section {
-      position: relative;
-      z-index: 1;
-      background: var(--surface);
-      border-top: 1px solid var(--border-dim);
-      border-bottom: 1px solid var(--border-dim);
-      padding: 5rem 3rem;
-    }
-
-    .scale-inner {
-      max-width: 1280px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6rem;
-      align-items: center;
-    }
-
-    .scale-stat {
-      padding: 1.5rem 0;
-      border-bottom: 1px solid var(--border-dim);
-    }
-
-    .scale-stat:last-child { border-bottom: none; }
-
-    .stat-num {
-      font-family: var(--mono);
-      font-size: 2.5rem;
-      color: var(--green);
-      line-height: 1;
-      margin-bottom: 0.3rem;
-    }
-
-    .stat-label {
-      font-size: 0.85rem;
-      font-weight: 300;
-      color: var(--muted);
-    }
-
-    /* ── FOOTER ── */
-    footer {
-      position: relative;
-      z-index: 1;
-      border-top: 1px solid var(--border-dim);
-      padding: 2.5rem 3rem;
-      margin-top: auto;
-      background: var(--deep);
-    }
-
-    .footer-inner {
-      max-width: 1280px;
-      margin: 0 auto;
-    }
-
-    .footer-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      padding-bottom: 2rem;
-      border-bottom: 1px solid var(--border-dim);
-      margin-bottom: 1.5rem;
-      gap: 2rem;
-      flex-wrap: wrap;
-    }
-
-    .footer-brand { display: flex; flex-direction: column; gap: 0.3rem; }
-
-    .footer-brand-name {
-      font-family: var(--mono);
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--green);
-      letter-spacing: 0.06em;
-    }
-
-    .footer-brand-desc {
-      font-family: var(--mono);
-      font-size: 0.55rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--faint);
-    }
-
-    .footer-links {
-      display: flex;
-      gap: 2rem;
-      list-style: none;
-      flex-wrap: wrap;
-    }
-
-    .footer-links a {
-      font-family: var(--mono);
-      font-size: 0.58rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--faint);
-      text-decoration: none;
-      transition: color 200ms;
-    }
-
-    .footer-links a:hover { color: var(--green); }
-
-    .footer-bottom {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    .footer-copy {
-      font-family: var(--mono);
-      font-size: 0.55rem;
-      letter-spacing: 0.08em;
-      color: rgba(212,232,212,0.15);
-    }
-
-    /* Powered by Gold Shore Labs */
-    .powered-by {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      text-decoration: none;
-      transition: opacity 200ms;
-    }
-
-    .powered-by:hover { opacity: 0.8; }
-
-    .powered-label {
-      font-family: var(--mono);
-      font-size: 0.52rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: rgba(212,232,212,0.2);
-    }
-
-    .gsl-mark {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .gsl-diamond {
-      width: 9px;
-      height: 9px;
-      background: var(--gold);
-      transform: rotate(45deg);
-      flex-shrink: 0;
-    }
-
-    .gsl-name {
-      font-family: var(--mono);
-      font-size: 0.55rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--gold);
-      opacity: 0.6;
-    }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 1024px) {
-      .scale-inner { grid-template-columns: 1fr; gap: 3rem; }
-      .poa-grid { grid-template-columns: 1fr 1fr; }
-    }
-
-    @media (max-width: 640px) {
-      nav { padding: 1rem 1.5rem; }
-      .nav-links { display: none; }
-      .hero, .what-is, footer { padding-left: 1.5rem; padding-right: 1.5rem; }
-      .hero { padding-top: 8rem; }
-      .scale-section { padding: 3rem 1.5rem; }
-      .poa-grid { grid-template-columns: 1fr; }
-      .footer-top { flex-direction: column; }
-      .footer-bottom { flex-direction: column; align-items: flex-start; }
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Banproof — AI Gateway & Proof of Agency Network. Verified traffic. Clean data. Residential nodes.">
+  <title>Banproof — AI Gateway</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/banproof.css">
 </head>
 <body>
 
 <!-- NAV -->
 <nav>
-  <a href="/" class="nav-logo">
-    <div class="bp-mark"></div>
-    <span class="nav-name">BANPROOF</span>
-  </a>
+  <div class="nav-left">
+    <a class="nav-logo" href="/">ban<span>proof</span></a>
+    <span class="nav-tag">Beta</span>
+  </div>
   <ul class="nav-links">
-    <li><a href="#poa">What is PoA</a></li>
-    <li><a href="#scale">Why now</a></li>
-    <li><a href="https://goldshore.ai" target="_blank" rel="noopener">Gold Shore Labs ↗</a></li>
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#nodes">Node network</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#cloudflare-status">Cloudflare status</a></li>
   </ul>
+  <a href="#pricing" class="nav-cta" data-modal="general">Get access</a>
 </nav>
 
 <!-- HERO -->
-<section class="hero">
-  <div class="hero-tag">Proof of Agency · Active</div>
-
-  <h1 class="hero-title">
-    AI did something.<br>
-    <span class="accent">Can you prove it?</span>
-  </h1>
-
-  <p class="hero-sub">
-    As AI systems take on more consequential tasks, <strong>accountability becomes infrastructure.</strong> Banproof records every AI decision chain — what model ran, what it was authorized to do, what it produced, and who signed off.
-  </p>
-
-  <div class="hero-actions">
-    <a href="mailto:hello@goldshore.ai?subject=Banproof inquiry" class="btn-green">Get early access →</a>
-    <a href="#poa" class="btn-outline">What is Proof of Agency</a>
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">
+      <span class="eyebrow-dot"></span>
+      <span class="eyebrow-text">Network operational · 94 nodes live</span>
+    </div>
+    <h1>The AI <span class="accent">gateway</span><br>for durable signal <span class="accent">highs</span>.</h1>
+    <p class="hero-desc">
+      Banproof filters AI agent traffic through a residential DePIN node network. Every request gets a Proof of Agency score. Clean data in. Verified signals out.
+    </p>
+    <div class="hero-actions">
+      <a href="#pricing" class="btn-primary" data-modal="general">Request access</a>
+      <a href="#how" class="btn-ghost">See how it works</a>
+    </div>
   </div>
 
-  <!-- Live PoA terminal -->
-  <div class="terminal">
-    <div class="terminal-header">
-      <span class="terminal-dot dot-red"></span>
-      <span class="terminal-dot dot-amber"></span>
-      <span class="terminal-dot dot-green"></span>
-      <span class="terminal-title">banproof-poa-feed — live audit stream</span>
+  <div class="hero-right">
+    <!-- Live terminal feed -->
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <span class="terminal-title">toll-booth.gateway · live feed</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-dim">12:41:03</span> <span class="t-green">PASS</span>  <span class="t-blue">100.100.100.1</span>  <span class="t-dim">PoA:95</span>  <span class="t-dim">DePIN node verified</span></div>
+        <div><span class="t-dim">12:41:04</span> <span class="t-red">DENY</span>  <span class="t-dim">45.21.99.1</span>      <span class="t-dim">PoA:12</span>  <span class="t-red">Datacenter IP rejected</span></div>
+        <div><span class="t-dim">12:41:04</span> <span class="t-green">PASS</span>  <span class="t-blue">100.200.200.2</span>  <span class="t-dim">PoA:91</span>  <span class="t-dim">Residential match</span></div>
+        <div><span class="t-dim">12:41:05</span> <span class="t-amber">WARN</span>  <span class="t-dim">201.55.12.98</span>   <span class="t-dim">PoA:44</span>  <span class="t-amber">Rate limit throttled</span></div>
+        <div><span class="t-dim">12:41:06</span> <span class="t-green">PASS</span>  <span class="t-blue">100.100.100.1</span>  <span class="t-dim">PoA:95</span>  <span class="t-dim">Gold Shore agent</span></div>
+        <div><span class="t-dim">12:41:07</span> <span class="t-red">DENY</span>  <span class="t-dim">192.168.1.1</span>    <span class="t-dim">PoA:08</span>  <span class="t-red">Token invalid</span></div>
+        <div><span class="t-dim">12:41:08</span> <span class="t-green">PASS</span>  <span class="t-blue">100.200.200.2</span>  <span class="t-dim">PoA:88</span>  <span class="t-dim">Wayward crawler</span></div>
+        <div><span class="t-dim">12:41:09</span> <span class="t-white">›</span> <span class="t-cursor"></span></div>
+      </div>
     </div>
-    <div class="log-line"><span class="log-ts">12:44:01Z</span><span class="log-ok">[POA]</span><span class="log-val">chain_id=a3f9 model=gpt-4o action=content_analysis authorized=true</span></div>
-    <div class="log-line"><span class="log-ts">12:44:03Z</span><span class="log-ok">[POA]</span><span class="log-val">chain_id=a3f9 step=2 sentiment=positive score=0.87 stored=d1</span></div>
-    <div class="log-line"><span class="log-ts">12:44:05Z</span><span class="log-warn">[GATE]</span><span class="log-val">chain_id=b7c1 action=external_write <span class="log-key">REQUIRES_APPROVAL</span> paused=true</span></div>
-    <div class="log-line"><span class="log-ts">12:44:07Z</span><span class="log-ok">[POA]</span><span class="log-val">chain_id=b7c1 approval=marstonr6@gmail.com granted=true resumed</span></div>
-    <div class="log-line"><span class="log-ts">12:44:09Z</span><span class="log-ok">[AUDIT]</span><span class="log-val">immutable_record=yes hash=sha256:9e4b... gs_audit_db=written</span></div>
-    <div class="log-line"><span class="log-ts">12:44:11Z</span><span class="log-ok">[SYS]</span><span class="log-val">queue=goldshore-jobs pending=0 workers_active=2 <span class="cursor"></span></span></div>
+
+    <!-- Stats -->
+    <div class="stat-row">
+      <div class="stat-cell">
+        <div class="stat-val">94<span class="unit"> nodes</span></div>
+        <div class="stat-label">DePIN network live</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val">99.2<span class="unit">%</span></div>
+        <div class="stat-label">Detection accuracy</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-val">&lt;8<span class="unit">ms</span></div>
+        <div class="stat-label">Avg verification</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <p class="section-tag">// How it works</p>
+    <h2>Four steps from request<br>to <span class="acc">verified signal.</span></h2>
+    <div class="steps reveal">
+      <div class="step">
+        <span class="step-num">01 —</span>
+        <span class="step-icon">⬡</span>
+        <p class="step-title">Request intercepted</p>
+        <p class="step-desc">Every inbound request hits the Toll Booth middleware before reaching your API. Bearer token extracted, IP captured.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">02 —</span>
+        <span class="step-icon">◈</span>
+        <p class="step-title">PoA validation</p>
+        <p class="step-desc">Proof of Agency check: token verified against env secrets, IP cross-referenced against the live Tailscale DePIN registry.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">03 —</span>
+        <span class="step-icon">◉</span>
+        <p class="step-title">Risk scored</p>
+        <p class="step-desc">Each request receives a DRS score 0–100. LOW/MEDIUM/HIGH risk levels gate access. High-risk traffic is rejected with reason.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">04 —</span>
+        <span class="step-icon">⬡</span>
+        <p class="step-title">Clean delivery</p>
+        <p class="step-desc">Verified agents pass through with their PoA score injected as a header. Downstream services can trust the payload.</p>
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- WHAT IS PoA -->
-<section class="what-is" id="poa">
-  <p class="section-eyebrow">// Proof of Agency</p>
-  <h2 class="section-title">An audit layer for the age of autonomous AI.</h2>
-  <p class="section-body">
-    Proof of Agency is a protocol that creates an immutable, human-readable record of every AI action chain. Not just logs — structured provenance that can be inspected, challenged, and verified by anyone with access.
-  </p>
-
-  <div class="poa-grid">
-    <div class="poa-card">
-      <div class="poa-icon">⬡</div>
-      <h3 class="poa-title">Action provenance</h3>
-      <p class="poa-desc">Every AI action is tied to a chain: which model, which prompt, which data, which human authorization event. Nothing anonymous.</p>
-    </div>
-    <div class="poa-card">
-      <div class="poa-icon">⬡</div>
-      <h3 class="poa-title">Human-in-the-loop gates</h3>
-      <p class="poa-desc">Consequential actions pause for explicit human approval before proceeding. The gate is the record — bypass attempts are themselves logged.</p>
-    </div>
-    <div class="poa-card">
-      <div class="poa-icon">⬡</div>
-      <h3 class="poa-title">Immutable audit trail</h3>
-      <p class="poa-desc">Records write to D1 via Cloudflare Workers and cannot be altered after the fact. Every record is timestamped, hashed, and verifiable.</p>
-    </div>
-    <div class="poa-card">
-      <div class="poa-icon">⬡</div>
-      <h3 class="poa-title">Cross-system visibility</h3>
-      <p class="poa-desc">Works across the Gold Shore Labs ecosystem and any system that integrates the PoA SDK. One record format, any AI provider.</p>
-    </div>
-    <div class="poa-card">
-      <div class="poa-icon">⬡</div>
-      <h3 class="poa-title">Sentiment scoring</h3>
-      <p class="poa-desc">Optional AI-powered analysis of each action's intent and output, scored and stored alongside the PoA record for downstream querying.</p>
-    </div>
-    <div class="poa-card">
-      <div class="poa-icon">⬡</div>
-      <h3 class="poa-title">DePIN infrastructure</h3>
-      <p class="poa-desc">Built on decentralized-friendly principles. Records are portable, exportable, and not locked to a single vendor's infrastructure.</p>
+<!-- USE CASES -->
+<section>
+  <div class="container">
+    <p class="section-tag">// Use cases</p>
+    <h2>Built for agents that<br>need to <span class="acc">prove themselves.</span></h2>
+    <div class="use-cases reveal">
+      <div class="use-case">
+        <p class="uc-tag">AI Crawlers</p>
+        <p class="uc-title">Residential-masked web agents</p>
+        <p class="uc-desc">Run autonomous crawlers through verified residential exit nodes. Bypass bot detection without spoofing — your agents are genuinely routed through real addresses.</p>
+      </div>
+      <div class="use-case">
+        <p class="uc-tag">Data pipelines</p>
+        <p class="uc-title">Signal quality enforcement</p>
+        <p class="uc-desc">Every data source that feeds your models passes through PoA scoring. Dirty signals from scrapers and bots never reach your training pipeline.</p>
+      </div>
+      <div class="use-case">
+        <p class="uc-tag">API security</p>
+        <p class="uc-title">Agent identity at the edge</p>
+        <p class="uc-desc">Protect your API endpoints from unverified AI traffic. Know exactly which agents are calling, with what trust level, on every single request.</p>
+      </div>
+      <div class="use-case">
+        <p class="uc-tag">DePIN nodes</p>
+        <p class="uc-title">Earn by running a node</p>
+        <p class="uc-desc">Host a Tailscale exit node and join the registry. Verified residential nodes earn per-request fees when they route validated agent traffic.</p>
+      </div>
+      <div class="use-case">
+        <p class="uc-tag">Agentic IDE</p>
+        <p class="uc-title">Autonomous dev workflows</p>
+        <p class="uc-desc">Codex, Jules, and other coding agents can prove their identity and context. Verified agent sessions get elevated scope on your protected infra.</p>
+      </div>
+      <div class="use-case">
+        <p class="uc-tag">Compliance</p>
+        <p class="uc-title">Auditable agent activity</p>
+        <p class="uc-desc">Every agent interaction is logged with a PoA score, IP, timestamp, and risk level. Full audit trail for regulatory and internal review.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- SCALE / WHY NOW -->
-<section class="scale-section" id="scale">
-  <div class="scale-inner">
-    <div>
-      <p class="section-eyebrow">// Why it matters now</p>
-      <h2 class="section-title">AI is everywhere. Accountability is not.</h2>
-      <p class="section-body">
-        As AI agents take on real-world tasks — sending emails, executing trades, generating content, managing systems — the question stops being "can it do this?" and becomes "did it do this, and should it have?"
+<!-- NODE NETWORK -->
+<section id="nodes">
+  <div class="container">
+    <p class="section-tag">// Node network</p>
+    <h2>A live <span class="acc">DePIN registry</span><br>of verified exit nodes.</h2>
+    <div class="node-grid reveal">
+      <div class="node-left">
+        <div class="node-list">
+          <div class="node-item">
+            <span class="node-id">node-001</span>
+            <span class="node-loc">New York, US</span>
+            <div class="node-status"><span class="node-dot dot-live"></span><span class="node-score">PoA 95</span></div>
+          </div>
+          <div class="node-item">
+            <span class="node-id">node-002</span>
+            <span class="node-loc">Los Angeles, US</span>
+            <div class="node-status"><span class="node-dot dot-live"></span><span class="node-score">PoA 91</span></div>
+          </div>
+          <div class="node-item">
+            <span class="node-id">node-007</span>
+            <span class="node-loc">Chicago, US</span>
+            <div class="node-status"><span class="node-dot dot-live"></span><span class="node-score">PoA 88</span></div>
+          </div>
+          <div class="node-item">
+            <span class="node-id">node-014</span>
+            <span class="node-loc">London, UK</span>
+            <div class="node-status"><span class="node-dot dot-warn"></span><span class="node-score">PoA 61</span></div>
+          </div>
+          <div class="node-item">
+            <span class="node-id">node-021</span>
+            <span class="node-loc">Toronto, CA</span>
+            <div class="node-status"><span class="node-dot dot-live"></span><span class="node-score">PoA 93</span></div>
+          </div>
+          <div class="node-item">
+            <span class="node-id">node-038</span>
+            <span class="node-loc">Miami, US</span>
+            <div class="node-status"><span class="node-dot dot-dead"></span><span class="node-score">Offline</span></div>
+          </div>
+          <div class="node-item" style="color:var(--muted); justify-content:center; font-size:0.65rem; letter-spacing:0.08em;">
+            + 88 more nodes across 14 regions
+          </div>
+        </div>
+      </div>
+      <div class="node-right">
+        <p class="legend-title">Network health</p>
+        <div class="legend-item">
+          <span class="legend-dot dot-live"></span>
+          <span class="legend-label">Live nodes</span>
+          <span class="legend-val">87</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot dot-warn"></span>
+          <span class="legend-label">Degraded</span>
+          <span class="legend-val">4</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot dot-dead"></span>
+          <span class="legend-label">Offline</span>
+          <span class="legend-val">3</span>
+        </div>
+        <div class="legend-item" style="margin-top:1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+          <span class="legend-label">Avg PoA score</span>
+          <span class="legend-val" style="color:var(--green)">89.4</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-label">Requests / hour</span>
+          <span class="legend-val">12,840</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-label">Pass rate</span>
+          <span class="legend-val" style="color:var(--green)">68.3%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DOCS / CLOUDFLARE -->
+<div id="docs"></div>
+<section id="cloudflare-status">
+  <div class="container">
+    <p class="section-tag">// Cloudflare status</p>
+    <h2>Cloudflare edge<br><span class="acc">integration status.</span></h2>
+    <div class="cf-panel reveal">
+      <p style="font-size:0.8rem; color:var(--muted);">
+        This public site verifies Cloudflare edge connectivity in real time using the Cloudflare speed test metadata endpoint.
       </p>
-      <p class="section-body" style="margin-bottom:0">
-        Banproof is the infrastructure layer that answers that question. Built by Gold Shore Labs and designed to grow as AI becomes a standard operating layer for every business.
-      </p>
-    </div>
-    <div>
-      <div class="scale-stat">
-        <div class="stat-num">∞</div>
-        <div class="stat-label">AI actions happen daily with zero accountability trail</div>
-      </div>
-      <div class="scale-stat">
-        <div class="stat-num">0</div>
-        <div class="stat-label">Current standards for AI action provenance at the infrastructure layer</div>
-      </div>
-      <div class="scale-stat">
-        <div class="stat-num">1</div>
-        <div class="stat-label">Gold Shore Labs protocol for verifiable AI decision chains</div>
+      <div class="cf-grid">
+        <div class="cf-item"><span class="cf-label">Zone</span><span id="cf-zone" class="cf-value">Checking…</span></div>
+        <div class="cf-item"><span class="cf-label">Provider</span><span class="cf-value">Cloudflare</span></div>
+        <div class="cf-item"><span class="cf-label">Edge colo</span><span id="cf-colo" class="cf-value">Checking…</span></div>
+        <div class="cf-item"><span class="cf-label">Region</span><span id="cf-region" class="cf-value">Checking…</span></div>
+        <div class="cf-item"><span class="cf-label">ASN</span><span id="cf-asn" class="cf-value">Checking…</span></div>
+        <div class="cf-item"><span class="cf-label">Status</span><span id="cf-status" class="cf-value" style="color:var(--amber)">Connecting…</span></div>
       </div>
     </div>
   </div>
 </section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="container">
+    <p class="section-tag">// Pricing</p>
+    <h2>Start verifying.<br><span class="acc">Pay as you grow.</span></h2>
+    <div class="pricing-grid reveal">
+      <div class="price-card">
+        <p class="price-tier">Developer</p>
+        <div class="price-amount">$0<span class="price-unit"> /mo</span></div>
+        <p class="price-sub">10k requests / month included</p>
+        <ul class="price-features">
+          <li>Toll Booth middleware</li>
+          <li>PoA scoring (basic)</li>
+          <li>10k verified requests</li>
+          <li>Community node routing</li>
+          <li class="dim">Priority node selection</li>
+          <li class="dim">Audit logs</li>
+          <li class="dim">SLA guarantee</li>
+        </ul>
+        <a href="mailto:hello@rmarston.com" class="btn-ghost" data-modal="developer" style="display:block; text-align:center;">Get started free</a>
+      </div>
+
+      <div class="price-card featured">
+        <p class="price-tier">Pro</p>
+        <div class="price-amount">$49<span class="price-unit"> /mo</span></div>
+        <p class="price-sub">500k requests included · $0.08 per 1k after</p>
+        <ul class="price-features">
+          <li>Everything in Developer</li>
+          <li>PoA scoring (advanced DRS)</li>
+          <li>500k verified requests</li>
+          <li>Priority residential nodes</li>
+          <li>Full audit log export</li>
+          <li>Custom risk thresholds</li>
+          <li class="dim">Dedicated node pool</li>
+        </ul>
+        <a href="mailto:hello@rmarston.com" class="btn-primary" data-modal="pro" style="display:block; text-align:center;">Start Pro trial</a>
+      </div>
+
+      <div class="price-card">
+        <p class="price-tier">Enterprise</p>
+        <div class="price-amount" style="font-size:1.8rem;">Custom</div>
+        <p class="price-sub">Volume pricing · SLA · dedicated infra</p>
+        <ul class="price-features">
+          <li>Everything in Pro</li>
+          <li>Dedicated node pool</li>
+          <li>Custom PoA policy rules</li>
+          <li>99.9% uptime SLA</li>
+          <li>Private Tailscale network</li>
+          <li>Onboarding & support</li>
+          <li>White-label option</li>
+        </ul>
+        <a href="mailto:hello@rmarston.com" class="btn-ghost" data-modal="enterprise" style="display:block; text-align:center;">Contact us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-banner">
+  <div class="cta-inner">
+    <div class="cta-text">
+      <h2>Your agents are calling.<br><span class="acc">Are they verified?</span></h2>
+      <p class="cta-sub">Join the early access list. First 50 developers get Pro free for 3 months.</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:1rem; min-width:260px;">
+      <a href="mailto:hello@rmarston.com" class="btn-primary" data-modal="general" style="text-align:center;">Request early access</a>
+      <a href="https://github.com/marzton/banproof.me" target="_blank" class="btn-ghost" style="text-align:center;">View on GitHub ↗</a>
+    </div>
+  </div>
+</div>
 
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
-    <div class="footer-top">
-      <div class="footer-brand">
-        <div class="footer-brand-name">BANPROOF</div>
-        <div class="footer-brand-desc">Proof of Agency · AI Audit Infrastructure</div>
-      </div>
-      <ul class="footer-links">
-        <li><a href="#poa">Protocol</a></li>
-        <li><a href="#scale">Why now</a></li>
-        <li><a href="mailto:hello@goldshore.ai">Contact</a></li>
-        <li><a href="https://goldshore.ai" target="_blank" rel="noopener">goldshore.ai ↗</a></li>
-      </ul>
-    </div>
-    <div class="footer-bottom">
-      <p class="footer-copy">&copy; 2025 Banproof · Gold Shore Labs · All rights reserved</p>
-      <a href="https://goldshore.ai" class="powered-by" target="_blank" rel="noopener" title="Gold Shore Labs">
-        <span class="powered-label">Powered by</span>
-        <span class="gsl-mark">
-          <span class="gsl-diamond"></span>
-          <span class="gsl-name">Gold Shore Labs</span>
-        </span>
-      </a>
-    </div>
+    <a class="footer-logo" href="/">ban<span>proof</span>.me</a>
+    <ul class="footer-links">
+      <li><a href="#">Docs</a></li>
+      <li><a href="#">GitHub</a></li>
+      <li><a href="https://goldshore.ai">Gold Shore Labs</a></li>
+      <li><a href="https://rmarston.com">rmarston.com</a></li>
+    </ul>
+    <span>© 2026 Gold Shore Labs</span>
   </div>
 </footer>
 
+<!-- ACCESS MODAL -->
+<div id="access-modal" class="modal-backdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-desc">
+    <div class="modal-header">
+      <p class="modal-title" id="modal-title">Request <span>access.</span></p>
+      <button class="modal-close" id="modal-close-btn" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc" id="modal-desc">
+        Join the early access list. First 50 developers get Pro free for 3 months. We'll follow up within one business day.
+      </p>
+      <form class="modal-form" id="modal-form">
+        <div class="form-row">
+          <div class="form-field">
+            <label class="form-label" for="modal-name">Name</label>
+            <input class="form-input" id="modal-name" type="text" placeholder="Your name" required autocomplete="name">
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="modal-email">Email</label>
+            <input class="form-input" id="modal-email" type="email" placeholder="you@company.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="modal-tier">Plan interest</label>
+          <select class="form-select" id="modal-tier">
+            <option value="developer">Developer — Free</option>
+            <option value="pro">Pro — $49 / mo</option>
+            <option value="enterprise">Enterprise — Custom</option>
+            <option value="general">Not sure yet</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="modal-notes">Use case <span style="color:var(--dim)">(optional)</span></label>
+          <textarea class="form-textarea" id="modal-notes" placeholder="Briefly describe what you're building or what support you need…"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="modal-submit" id="modal-submit">Send request</button>
+          <button type="button" class="modal-cancel" id="modal-cancel-btn">Cancel</button>
+        </div>
+      </form>
+      <div class="modal-success" id="modal-success" role="status">
+        <div class="modal-success-icon">◉</div>
+        <p class="modal-success-title">Email draft opened.</p>
+        <p class="modal-success-msg">We've opened an email draft in your mail client. Please review and send it to complete your access request. Keep an eye on <span id="modal-success-email" style="color:var(--text)"></span> for our reply.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/banproof.js" defer></script>
 </body>
 </html>
