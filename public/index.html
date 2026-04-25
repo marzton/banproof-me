@@ -391,5 +391,47 @@
 </div>
 
 <script src="/banproof.js" defer></script>
+<script>
+  // ── Email CTA submit handler ──
+  (function () {
+    var form = document.getElementById('modal-form');
+    var btn  = document.getElementById('modal-submit');
+    if (!form) return;
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+
+      var payload = {
+        name:  document.getElementById('modal-name').value.trim(),
+        email: document.getElementById('modal-email').value.trim(),
+        tier:  document.getElementById('modal-tier') ? document.getElementById('modal-tier').value : '',
+        notes: document.getElementById('modal-notes') ? document.getElementById('modal-notes').value.trim() : '',
+      };
+
+      try {
+        var res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        var data = await res.json();
+
+        if (data.ok) {
+          form.innerHTML = '<p style="text-align:center;padding:2rem 0;color:var(--green,#00ff88)">Request received. We\'ll be in touch.</p>';
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Send request';
+          alert(data.error || 'Something went wrong. Email hello@banproof.me directly.');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Send request';
+        alert('Network error. Email hello@banproof.me directly.');
+      }
+    });
+  })();
+</script>
 </body>
 </html>
