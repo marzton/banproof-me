@@ -35,10 +35,7 @@ const PUBLIC_ROUTES = new Set(['/api/health']);
 // Default trusted IPs for admin routes
 // - In development (CF_ACCESS_AUDIENCE === 'development'): localhost only.
 // - In all other environments: fail closed (no default trusted IPs).
-const DEFAULT_TRUSTED_ADMIN_IPS =
-  process.env.CF_ACCESS_AUDIENCE === 'development'
-    ? ['127.0.0.1', '::1']
-    : [];
+const DEFAULT_TRUSTED_ADMIN_IPS = ['127.0.0.1', '::1'];
 
 // ── Middleware ────────────────────────────────────────────────
 
@@ -170,7 +167,7 @@ export const accessControlMiddleware: MiddlewareHandler = async (c, next) => {
     // Check IP whitelist for admin routes that require it
     if (permission.requireTrustedIp) {
       const env = c.env as Record<string, string | undefined>;
-      const rawIps = env.TRUSTED_ADMIN_IPS ?? DEFAULT_TRUSTED_ADMIN_IPS.join(',');
+      const rawIps = env.TRUSTED_ADMIN_IPS ?? (env.CF_ACCESS_AUDIENCE === 'development' ? DEFAULT_TRUSTED_ADMIN_IPS.join(',') : '');
       const trustedIps = rawIps.split(',').map((ip) => ip.trim());
 
       if (!trustedIps.includes(ipAddress)) {
