@@ -1,24 +1,19 @@
-# Durable Intelligence Architecture Documentation
+# banproof.me — Banproof / Proof of Agency
 
-## Gatekeeper
-- Description of Gatekeeper's role in the architecture and its integrations.
+## Repo → Worker → Domain
+| App | CF Pages | Domain | Status |
+|-----|----------|--------|--------|
+| `public/` | `banproof` Pages | `banproof.me`, `www.banproof.me` | ✅ Live |
 
-## Engine
-- Overview of the Engine component, functionalities, and its importance.
+## Cloudflare Account
+- **Account:** Gold Shore Labs (`f77de112d2019e5456a3198a8bb50bd2`)
+- **Pages project:** `banproof`
+- **Pages Function:** `functions/api/contact.js` → CF Email Routing
+- **D1:** `gs_platform_db` (binding: `PLATFORM_DB`)
 
-## D1 & KV Components
-- Detailing the D1 and KV components, including use cases and configurations.
+## Email binding (required)
+CF Pages → Settings → Functions → Bindings → Add:
+- Type: Send Email · Name: `SEND_EMAIL` · Destination: `marstonr6@gmail.com`
 
-## Intelligence Stack
-- Insight into the Intelligence Stack, its components, and how they work together.
-
-## Subscription Tiers
-- Explanation of different subscription tiers available to users and their benefits.
-
-## Development & Deployment
-- Guidance on the development and deployment processes, best practices, and tools used.
-
-## Security Policy
-- Outline of the security policies in place to protect user data and system integrity.
-
-*Updated on 2026-04-01 to include sections on Durable Intelligence Architecture.*
+## Powered by
+Gold Shore Labs — goldshore.ai

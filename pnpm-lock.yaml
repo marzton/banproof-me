@@ -61,8 +61,8 @@ importers:
   worker:
     dependencies:
       hono:
-        specifier: ^4.12.9
-        version: 4.12.10
+        specifier: ^4.12.14
+        version: 4.12.14
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20260401.1
@@ -720,6 +720,10 @@ packages:
 
   hono@4.12.10:
     resolution: {integrity: sha512-mx/p18PLy5og9ufies2GOSUqep98Td9q4i/EF6X7yJgAiIopxqdfIO3jbqsi3jRgTgw88jMDEzVKi+V2EF+27w==}
+    engines: {node: '>=16.9.0'}
+
+  hono@4.12.14:
+    resolution: {integrity: sha512-am5zfg3yu6sqn5yjKBNqhnTX7Cv+m00ox+7jbaKkrLMRJ4rAdldd1xPd/JzbBWspqaQv6RSTrgFN95EsfhC+7w==}
     engines: {node: '>=16.9.0'}
 
   html-escaper@2.0.2:
@@ -1511,6 +1515,8 @@ snapshots:
   has-flag@4.0.0: {}
 
   hono@4.12.10: {}
+
+  hono@4.12.14: {}
 
   html-escaper@2.0.2: {}
 

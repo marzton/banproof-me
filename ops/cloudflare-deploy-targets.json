@@ -1,0 +1,12 @@
+{
+  "repo": "banproof.me",
+  "production": {
+    "zone": "banproof.me",
+    "host": "banproof.me",
+    "worker_url": "https://banproof.me"
+  },
+  "preview": {
+    "host": "preview.banproof.me",
+    "worker_url": "https://preview.banproof.me"
+  }
+}

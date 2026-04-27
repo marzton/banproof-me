@@ -141,7 +141,7 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
         name:   bm.title,
         price:  bm.markets[0]?.outcomes[0]?.price ?? 0,
         spread: 0,
-        value:  undefined as 'EV+' | 'EV-' | 'FAIR' | undefined,
+        value:  undefined as OddsResult['bookmakers'][0]['value'],
       }));
       const best = bookmakers.length
         ? bookmakers.reduce((a, b) => (b.price > a.price ? b : a))
@@ -151,6 +151,21 @@ export class BanproofEngine extends WorkflowEntrypoint<Env, Params> {
         best_price: { bookmaker: best.name, price: best.price },
         source: 'REAL_ODDS' as const,
       } satisfies OddsResult;
+    });
+
+    // ── Step 3: Best Price Logic + D1 audit ───────────────────
+    await step.do('best-price-decision', async () => {
+      const evOpportunity = odds.bookmakers.find((b) => b.value === 'EV+');
+      const decision = {
+        query,
+        userId,
+        sentiment,
+        best_price: odds.best_price,
+        ev_opportunity: evOpportunity ?? null,
+      };
+
+      await auditLog(this.env.DB, userId, 'AI_ANALYSIS', { ...decision, tier: userTier });
+      return decision;
     });
 
     // ── Pro tier ────────────────────────────────────────────

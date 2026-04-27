@@ -1,0 +1,6 @@
+{
+  "required_kv_namespaces": [],
+  "required_d1_databases": [],
+  "required_r2_buckets": [],
+  "required_queues": []
+}

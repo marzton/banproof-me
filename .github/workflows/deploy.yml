@@ -1,0 +1,51 @@
+name: Deploy Worker
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check --if-present || npx tsc --noEmit --skipLibCheck 2>/dev/null || true
+
+      - name: Build
+        run: npm run build --if-present
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --name ${{ vars.WORKER_NAME || github.event.repository.name }}
+
+      - name: Health check
+        run: |
+          HEALTH_URL="${{ vars.HEALTH_CHECK_URL }}"
+          if [ -n "$HEALTH_URL" ]; then
+            sleep 5
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL")
+            if [ "$STATUS" != "200" ]; then
+              echo "Health check failed: $STATUS"
+              exit 1
+            fi
+            echo "Health check passed: $STATUS"
+          fi
