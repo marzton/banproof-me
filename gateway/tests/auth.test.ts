@@ -87,6 +87,11 @@ function makeD1() {
 
   return {
     prepare: (sql: string) => mockStmt(sql, []),
+    batch: async (stmts: any[]) => {
+      for (const stmt of stmts) {
+        await stmt.run();
+      }
+    },
     _rows: rows,
   };
 }
