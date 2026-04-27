@@ -48,12 +48,12 @@ function buildApp() {
   // Protected routes
   app.post('/api/pro/analyze', (c) => c.json({ ok: true }));
   app.post('/api/access/sentiment', (c) => {
-    const accessContext = c.get('accessContext') as AccessContext | undefined;
+    const accessContext = (c as any).get('accessContext') as AccessContext | undefined;
     if (!accessContext || !enforceRBAC(accessContext, 'pro')) {
       const status = !accessContext || accessContext.method === 'public' ? 401 : 403;
-      return c.json({ error: "Access denied: 'pro' role required" }, status);
+      return (c as any).json({ error: "Access denied: 'pro' role required" }, status);
     }
-    return c.json({
+    return (c as any).json({
       workflowId: 'sentiment-test-workflow',
       source: 'mock',
       access: {
@@ -364,8 +364,8 @@ describe('accessControlMiddleware', () => {
 
     // Add a route that reads the context
     app.post('/api/pro/context-check', (c) => {
-      const ctx = c.get('accessContext') as AccessContext;
-      return c.json({ method: ctx?.method, role: ctx?.identity.role });
+      const ctx = (c as any).get('accessContext') as AccessContext;
+      return (c as any).json({ method: ctx?.method, role: ctx?.identity.role });
     });
 
     const res = await doFetch(app, jwtRequest('/api/pro/context-check', 'POST'));
@@ -379,8 +379,8 @@ describe('accessControlMiddleware', () => {
     const app = buildApp();
 
     app.post('/api/pro/context-check', (c) => {
-      const ctx = c.get('accessContext') as AccessContext;
-      return c.json({ method: ctx?.method });
+      const ctx = (c as any).get('accessContext') as AccessContext;
+      return (c as any).json({ method: ctx?.method });
     });
 
     const res = await doFetch(app, agentRequest('/api/pro/context-check', 'POST', TRUSTED_IP));
