@@ -10,6 +10,7 @@
 
 import type { MiddlewareHandler } from 'hono';
 import type { AccessContext, UserRole, TierLevel } from '../types/access.js';
+import type { Bindings, Variables } from '../types/env.js';
 import { validateZeroEdgeJWT, extractClaims, enforceRBAC } from './zeroEdgeSSO.js';
 import { validateProofOfAgency } from '../validators/proofOfAgency.js';
 
@@ -39,7 +40,10 @@ const DEFAULT_TRUSTED_ADMIN_IPS = ['127.0.0.1', '::1'];
 
 // ── Middleware ────────────────────────────────────────────────
 
-export const accessControlMiddleware: MiddlewareHandler = async (c, next) => {
+export const accessControlMiddleware: MiddlewareHandler<{
+  Bindings: Bindings;
+  Variables: Variables;
+}> = async (c, next) => {
   const url = new URL(c.req.url);
   const path = url.pathname;
   const method = c.req.method;
@@ -73,9 +77,8 @@ export const accessControlMiddleware: MiddlewareHandler = async (c, next) => {
   const jwtToken = c.req.header('Cf-Access-Jwt-Assertion');
 
   if (jwtToken) {
-    const env = c.env as Record<string, string | undefined>;
-    const audience = env.CF_ACCESS_AUDIENCE ?? '';
-    const publicKey = env.CF_ZERO_EDGE_PUBLIC_KEY ?? '';
+    const audience = c.env.CF_ACCESS_AUDIENCE ?? '';
+    const publicKey = c.env.CF_ZERO_EDGE_PUBLIC_KEY ?? '';
 
     try {
       const identity = await validateZeroEdgeJWT(jwtToken, audience, publicKey);
@@ -169,6 +172,9 @@ export const accessControlMiddleware: MiddlewareHandler = async (c, next) => {
       const env = c.env as Record<string, string | undefined>;
       const rawIps = env.TRUSTED_ADMIN_IPS ?? (env.CF_ACCESS_AUDIENCE === 'development' ? DEFAULT_TRUSTED_ADMIN_IPS.join(',') : '');
       const trustedIps = rawIps.split(',').map((ip) => ip.trim());
+      const defaultIps = env.CF_ACCESS_AUDIENCE === 'development' ? '127.0.0.1,::1' : '';
+      const rawIps = env.TRUSTED_ADMIN_IPS ?? defaultIps;
+      const trustedIps = rawIps.split(',').map((ip) => ip.trim()).filter(Boolean);
 
       if (!trustedIps.includes(ipAddress)) {
         console.warn(
