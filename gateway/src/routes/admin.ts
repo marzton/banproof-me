@@ -25,19 +25,20 @@ admin.use('*', authMiddleware, requireAdmin);
 
 // ── Helper: log admin action ──────────────────────────────────
 
-function logAdminAction(
+async function logAdminAction(
   db: D1Database,
   adminId: string,
   action: string,
   targetUserId: string | null,
   metadata: Record<string, unknown>,
   ip: string,
-): D1PreparedStatement {
-  return db.prepare(
+): Promise<void> {
+  await db.prepare(
     `INSERT INTO admin_audit_log (admin_id, action, target_user_id, metadata, ip_address)
        VALUES (?, ?, ?, ?, ?)`,
   )
-    .bind(adminId, action, targetUserId ?? null, JSON.stringify(metadata), ip);
+    .bind(adminId, action, targetUserId ?? null, JSON.stringify(metadata), ip)
+    .run();
 }
 
 // ── GET /admin/dashboard ──────────────────────────────────────
@@ -107,19 +108,18 @@ admin.post('/users/:userId/tier', async (c) => {
     return c.json({ error: 'User not found.' }, 404);
   }
 
-  await c.env.DB.batch([
-    c.env.DB.prepare(
-      'UPDATE users SET plan_tier = ? WHERE id = ?',
-    ).bind(tier, userId),
-    logAdminAction(
-      c.env.DB, auth.userId, 'tier_change', userId,
-      { previous_tier: user.plan_tier, new_tier: tier, email: user.email },
-      ip,
-    ),
-  ]);
+  await c.env.DB.prepare(
+    'UPDATE users SET plan_tier = ? WHERE id = ?',
+  ).bind(tier, userId).run();
 
   // Invalidate cached session
   await c.env.CACHE.delete(`session:${userId}`);
+
+  await logAdminAction(
+    c.env.DB, auth.userId, 'tier_change', userId,
+    { previous_tier: user.plan_tier, new_tier: tier, email: user.email },
+    ip,
+  );
 
   return c.json({ ok: true, userId, newTier: tier });
 });
@@ -144,16 +144,15 @@ admin.post('/inquiries/:inquiryId/quote', async (c) => {
     return c.json({ error: 'Inquiry not found.' }, 404);
   }
 
-  await c.env.DB.batch([
-    c.env.DB.prepare(
-      `UPDATE inquiries SET status = 'quoted' WHERE id = ?`,
-    ).bind(inquiryId),
-    logAdminAction(
-      c.env.DB, auth.userId, 'inquiry_quoted', null,
-      { inquiry_id: inquiryId, company: inquiry.company, email: inquiry.email, quote },
-      ip,
-    ),
-  ]);
+  await c.env.DB.prepare(
+    `UPDATE inquiries SET status = 'quoted' WHERE id = ?`,
+  ).bind(inquiryId).run();
+
+  await logAdminAction(
+    c.env.DB, auth.userId, 'inquiry_quoted', null,
+    { inquiry_id: inquiryId, company: inquiry.company, email: inquiry.email, quote },
+    ip,
+  );
 
   // Notify via console (Discord/email wired in engine step)
   console.log(`[Admin] Quote sent to ${inquiry.email} for ${inquiry.company}: ${quote}`);
