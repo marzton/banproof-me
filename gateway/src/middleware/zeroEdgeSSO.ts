@@ -154,7 +154,7 @@ export async function validateZeroEdgeJWT(
   }
 
   // Extract identity from custom claims
-  const custom = payload.custom ?? payload['com.banproof'] ?? {};
+  const custom = (payload.custom ?? payload['com.banproof'] ?? {}) as Record<string, any>;
   const userId = custom.user_id ?? payload.sub ?? '';
   const email = payload.email ?? '';
   const role = (custom.role as UserRole | undefined) ?? 'public';

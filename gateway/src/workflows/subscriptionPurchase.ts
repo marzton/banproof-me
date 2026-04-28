@@ -11,7 +11,7 @@ type PaymentEventMetadata = {
   currentPeriodEnd?: string;
   autoRenew?: boolean;
   processedAt?: string;
-  [key: string]: unknown;
+  [key: string]: string | number | boolean | null | undefined;
 };
 
 type Env = {
@@ -29,7 +29,7 @@ export type SubscriptionPurchaseParams = {
 type ValidatedPayload = {
   userId: string;
   targetTier: PlanTier;
-  paymentEvent: Required<Pick<PaymentEventMetadata, 'eventId' | 'provider'>> & PaymentEventMetadata;
+  paymentEvent: PaymentEventMetadata;
   notify: boolean;
 };
 
@@ -76,7 +76,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
         return {
           userId: raw.userId,
           targetTier,
-          paymentEvent: raw.paymentEvent as Required<Pick<PaymentEventMetadata, 'eventId' | 'provider'>> & PaymentEventMetadata,
+          paymentEvent: raw.paymentEvent as PaymentEventMetadata,
           notify: raw.notify ?? true,
         };
       });
