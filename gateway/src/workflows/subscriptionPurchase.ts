@@ -54,7 +54,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
     const startedAt = new Date().toISOString();
 
     try {
-      const payload = await step.do('validate-input', async () => {
+      const payload = await step.do('validate-input', async (): Promise<ValidatedPayload> => {
         const raw = event.payload;
         const targetTier = raw?.targetTier;
         if (!raw?.userId || typeof raw.userId !== 'string') {
@@ -78,7 +78,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
           targetTier,
           paymentEvent: raw.paymentEvent as Required<Pick<PaymentEventMetadata, 'eventId' | 'provider'>> & PaymentEventMetadata,
           notify: raw.notify ?? true,
-        } satisfies ValidatedPayload;
+        };
       });
 
       const duplicate = await step.do('idempotency-check', async () => {

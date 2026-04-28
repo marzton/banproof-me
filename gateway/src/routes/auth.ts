@@ -124,16 +124,16 @@ auth.post('/signup', async (c) => {
   const passwordHash = await hashPassword(password);
   const ip           = c.req.header('CF-Connecting-IP') ?? c.req.header('X-Forwarded-For') ?? '';
 
-  await c.env.DB.batch([
-    c.env.DB.prepare(
-      `INSERT INTO users (id, email, password_hash, plan_tier, role)
-         VALUES (?, ?, ?, 'free', 'user')`,
-    ).bind(id, email.toLowerCase().trim(), passwordHash),
-    c.env.DB.prepare(
-      `INSERT INTO audit_log (user_id, action, metadata)
-         VALUES (?, 'user_created', ?)`,
-    ).bind(id, JSON.stringify({ email, ip })),
-  ]);
+  await c.env.DB.prepare(
+    `INSERT INTO users (id, email, password_hash, plan_tier, role)
+       VALUES (?, ?, ?, 'free', 'user')`,
+  ).bind(id, email.toLowerCase().trim(), passwordHash).run();
+
+  // Audit log
+  await c.env.DB.prepare(
+    `INSERT INTO audit_log (user_id, action, metadata)
+       VALUES (?, 'user_created', ?)`,
+  ).bind(id, JSON.stringify({ email, ip })).run();
 
   console.log(`[Auth] signup: ${email} (${id}) from ${ip}`);
 
@@ -194,16 +194,16 @@ auth.post('/signin', async (c) => {
     .replace('T', ' ')
     .slice(0, 19);
 
-  await c.env.DB.batch([
-    c.env.DB.prepare(
-      `INSERT INTO sessions (id, user_id, access_token, refresh_token, expires_at, ip_address, user_agent)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(sessionId, user.id, accessToken, refreshToken, expiresAt, ip, userAgent),
-    c.env.DB.prepare(
-      `INSERT INTO audit_log (user_id, action, metadata)
-         VALUES (?, 'signin_success', ?)`,
-    ).bind(user.id, JSON.stringify({ ip, userAgent })),
-  ]);
+  await c.env.DB.prepare(
+    `INSERT INTO sessions (id, user_id, access_token, refresh_token, expires_at, ip_address, user_agent)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(sessionId, user.id, accessToken, refreshToken, expiresAt, ip, userAgent).run();
+
+  // Audit successful signin
+  await c.env.DB.prepare(
+    `INSERT INTO audit_log (user_id, action, metadata)
+       VALUES (?, 'signin_success', ?)`,
+  ).bind(user.id, JSON.stringify({ ip, userAgent })).run();
 
   console.log(`[Auth] signin: ${user.email} from ${ip}`);
 
@@ -289,16 +289,16 @@ auth.post('/logout', async (c) => {
 
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
-  await c.env.DB.batch([
-    c.env.DB.prepare(
-      `UPDATE sessions SET revoked_at = ?
-         WHERE user_id = ? AND revoked_at IS NULL`,
-    ).bind(now, session.user_id),
-    c.env.DB.prepare(
-      `INSERT INTO audit_log (user_id, action, metadata)
-         VALUES (?, 'logout', ?)`,
-    ).bind(session.user_id, JSON.stringify({ ip })),
-  ]);
+  await c.env.DB.prepare(
+    `UPDATE sessions SET revoked_at = ?
+       WHERE user_id = ? AND revoked_at IS NULL`,
+  ).bind(now, session.user_id).run();
+
+  // Audit logout
+  await c.env.DB.prepare(
+    `INSERT INTO audit_log (user_id, action, metadata)
+       VALUES (?, 'logout', ?)`,
+  ).bind(session.user_id, JSON.stringify({ ip })).run();
 
   console.log(`[Auth] logout: userId=${session.user_id} from ${ip}`);
 
