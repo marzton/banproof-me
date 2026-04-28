@@ -31,6 +31,18 @@ node serve.js
 ```
 This serves the `public/` directory on port 5000.
 
+## API Endpoints (local dev — serve.js)
+- `POST /api/contact` — Contact/access request form. Validates name + email, saves to `data/contacts.json`
+- `POST /api/subscribe` — Waitlist email capture. Deduplicates by email, saves to `data/subscribers.json`
+
+## Cloudflare Pages Functions (deployed)
+- `functions/api/contact.js` — Sends email via CF Email Routing (`SEND_EMAIL` binding), stores in D1
+- `functions/api/subscribe.js` — Waitlist signup, KV dedup (`WAITLIST_KV` binding), email notify, D1 store
+
+## DNS / Redirect
+- `_redirects` — Redirects `banproof.me/*` → `https://www.banproof.me/:splat` (Cloudflare Pages)
+- `serve.js` — Also enforces www redirect locally when `Host: banproof.me`
+
 ## Deployment
 The backend workers run on Cloudflare's edge infrastructure and are deployed via Wrangler (`wrangler deploy`). The frontend is served as Cloudflare Pages.
 
