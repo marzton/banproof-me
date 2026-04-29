@@ -11,11 +11,9 @@ export async function onRequestPost(context) {
   const { request, env } = context;
 
   // CORS headers
-  const origin = request.headers.get('Origin') || '';
-  const allowedOrigins = ['https://banproof.me', 'https://www.banproof.me'];
   const headers = {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : 'https://www.banproof.me',
+    'Access-Control-Allow-Origin': 'https://banproof.me',
   };
 
   try {
@@ -83,13 +81,11 @@ export async function onRequestPost(context) {
   }
 }
 
-export async function onRequestOptions(context) {
-  const origin = context.request.headers.get('Origin') || '';
-  const allowedOrigins = ['https://banproof.me', 'https://www.banproof.me'];
+export async function onRequestOptions() {
   return new Response(null, {
     status: 204,
     headers: {
-      'Access-Control-Allow-Origin': allowedOrigins.includes(origin) ? origin : 'https://www.banproof.me',
+      'Access-Control-Allow-Origin': 'https://banproof.me',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },

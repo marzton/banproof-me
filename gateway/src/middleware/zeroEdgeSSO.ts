@@ -60,7 +60,6 @@ interface CfAccessJWTPayload {
   };
   /** Alternative namespace for custom claims */
   'com.banproof'?: {
-    user_id?: string;
     role?: string;
     tier_level?: string;
   };
@@ -154,7 +153,7 @@ export async function validateZeroEdgeJWT(
   }
 
   // Extract identity from custom claims
-  const custom = (payload.custom ?? payload['com.banproof'] ?? {}) as Record<string, any>;
+  const custom = payload.custom ?? payload['com.banproof'] ?? {};
   const userId = custom.user_id ?? payload.sub ?? '';
   const email = payload.email ?? '';
   const role = (custom.role as UserRole | undefined) ?? 'public';

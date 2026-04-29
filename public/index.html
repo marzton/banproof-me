@@ -320,14 +320,8 @@
       <h2>Your agents are calling.<br><span class="acc">Are they verified?</span></h2>
       <p class="cta-sub">Join the early access list. First 50 developers get Pro free for 3 months.</p>
     </div>
-    <div style="display:flex; flex-direction:column; gap:1rem; min-width:300px;">
+    <div style="display:flex; flex-direction:column; gap:1rem; min-width:260px;">
       <a href="mailto:hello@rmarston.com" class="btn-primary" data-modal="general" style="text-align:center;">Request early access</a>
-      <form id="subscribe-form" style="display:flex; gap:0.5rem;">
-        <input id="subscribe-email" type="email" placeholder="your@email.com" required autocomplete="email"
-          style="flex:1; background:var(--surface); border:1px solid var(--border); color:var(--text); padding:0.65rem 1rem; font-family:var(--mono); font-size:0.8rem; border-radius:4px; outline:none;">
-        <button type="submit" id="subscribe-btn" class="btn-ghost" style="white-space:nowrap;">Join waitlist</button>
-      </form>
-      <p id="subscribe-msg" style="display:none; font-family:var(--mono); font-size:0.75rem; color:var(--green); text-align:center;"></p>
       <a href="https://github.com/marzton/banproof.me" target="_blank" class="btn-ghost" style="text-align:center;">View on GitHub ↗</a>
     </div>
   </div>
@@ -398,48 +392,6 @@
 
 <script src="/banproof.js" defer></script>
 <script>
-  // ── Subscribe waitlist handler ──
-  (function () {
-    var form = document.getElementById('subscribe-form');
-    var btn  = document.getElementById('subscribe-btn');
-    var msg  = document.getElementById('subscribe-msg');
-    if (!form) return;
-
-    form.addEventListener('submit', async function (e) {
-      e.preventDefault();
-      btn.disabled = true;
-      btn.textContent = 'Adding…';
-      msg.style.display = 'none';
-
-      var email = document.getElementById('subscribe-email').value.trim();
-      try {
-        var res = await fetch('/api/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email, source: 'landing-cta' }),
-        });
-        var data = await res.json();
-        if (data.ok) {
-          form.style.display = 'none';
-          msg.textContent = data.already ? 'You\'re already on the list.' : '◉ You\'re on the list. We\'ll be in touch.';
-          msg.style.display = 'block';
-        } else {
-          btn.disabled = false;
-          btn.textContent = 'Join waitlist';
-          msg.textContent = data.error || 'Something went wrong. Try again.';
-          msg.style.color = 'var(--red, #ff4d4d)';
-          msg.style.display = 'block';
-        }
-      } catch (err) {
-        btn.disabled = false;
-        btn.textContent = 'Join waitlist';
-        msg.textContent = 'Network error. Email hello@banproof.me directly.';
-        msg.style.color = 'var(--red, #ff4d4d)';
-        msg.style.display = 'block';
-      }
-    });
-  }());
-
   // ── Email CTA submit handler ──
   (function () {
     var form = document.getElementById('modal-form');
