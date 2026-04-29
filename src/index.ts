@@ -26,7 +26,6 @@ export interface Env {
   CONTENT_WORKFLOW: Workflow;
   GS_EVENTS: Queue;
   EMAIL_ROUTER?: Fetcher;
-  SEND_EMAIL?: { send: (msg: any) => Promise<void> };
   ANALYTICS?: { write: (data: any) => void };
   ENV: string;
   POA_TOKEN: string;
