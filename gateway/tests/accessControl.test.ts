@@ -72,11 +72,11 @@ function buildApp() {
 
 /** Fetch helper — passes the env object as the second argument (Cloudflare Worker style) */
 function doFetch(
-  app: Hono,
+  app: Hono<any, any, any>,
   request: Request,
   envOverrides: Record<string, string> = {},
 ) {
-  return app.fetch(request, { ...BASE_ENV, ...envOverrides });
+  return app.fetch(request, { ...BASE_ENV, ...envOverrides } as any);
 }
 
 function makeIdentity(overrides: Partial<ZeroEdgeIdentity> = {}): ZeroEdgeIdentity {
