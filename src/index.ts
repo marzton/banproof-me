@@ -1,35 +1,3 @@
-import {
-  WorkflowEntrypoint,
-  WorkflowEvent,
-  WorkflowStep,
-} from 'cloudflare:workers'
-
-type ContentProcessingParams = {
-  contentId?: string
-  source?: string
-}
-
-export class ContentProcessingWorkflow extends WorkflowEntrypoint {
-  async run(
-    event: WorkflowEvent<ContentProcessingParams>,
-    step: WorkflowStep,
-  ): Promise<{ status: string; contentId: string | null }> {
-    const payload = await step.do('capture-payload', async () => {
-      return {
-        contentId: event.payload?.contentId ?? null,
-        source: event.payload?.source ?? 'unknown',
-      }
-    })
-
-    await step.do('mark-complete', async () => {
-      console.log('content-processing-workflow completed', payload)
-      return true
-    })
-
-    return {
-      status: 'completed',
-      contentId: payload.contentId,
-    }
 /**
  * banproof-me — Proof of Agency gateway + content processing
  *
@@ -41,11 +9,13 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint {
  *   GET  /api/poa/:id    → get workflow status
  */
 
-import {
-  WorkflowEntrypoint,
-  WorkflowEvent,
-  WorkflowStep,
-} from 'cloudflare:workers';
+import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from 'cloudflare:workers';
+import type { MessageBatch } from '@cloudflare/workers-types';
+
+export type QueueJobMessage = {
+  type: string;
+  payload: Record<string, any>;
+};
 
 export interface Env {
   ASSETS: Fetcher;
@@ -55,10 +25,13 @@ export interface Env {
   MEDIA_STORE: R2Bucket;
   CONTENT_WORKFLOW: Workflow;
   GS_EVENTS: Queue;
+  EMAIL_ROUTER?: Fetcher;
+  ANALYTICS?: { write: (data: any) => void };
   ENV: string;
   POA_TOKEN: string;
   AUDIT_TOKEN: string;
   OPENAI_API_KEY: string;
+  DISCORD_WEBHOOK?: string;
 }
 
 type WorkflowParams = {
@@ -210,18 +183,6 @@ async function handlePoAStatus(jobId: string, env: Env): Promise<Response> {
 }
 
 export default {
-  async fetch(request: Request): Promise<Response> {
-    const { pathname } = new URL(request.url)
-
-    if (pathname === '/health') {
-      return new Response('ok', { status: 200 })
-    }
-
-    return new Response('banproof-me worker online', {
-      headers: { 'content-type': 'text/plain; charset=utf-8' },
-    })
-  },
-}
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const { pathname } = url;
@@ -248,5 +209,64 @@ export default {
     if (poaMatch && request.method === 'GET') return handlePoAStatus(poaMatch[1], env);
 
     return env.ASSETS.fetch(request);
+  },
+
+  async queue(batch: MessageBatch<QueueJobMessage>, env: Env): Promise<void> {
+    for (const message of batch.messages) {
+      try {
+        const { type, payload } = message.body;
+        const correlationId =
+          typeof payload?.correlationId === 'string' ? payload.correlationId : undefined;
+        console.log(`[Queue] Processing job: ${type}`, { correlationId });
+
+        // Record event in analytics
+        if (env.ANALYTICS) {
+          env.ANALYTICS.write({
+            doubles: [1],
+            blobs: [type, JSON.stringify(payload)],
+          });
+        }
+
+        switch (type) {
+          case 'tier_upgraded':
+            if (env.DISCORD_WEBHOOK) {
+              const response = await fetch(env.DISCORD_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+                }),
+              });
+              if (!response.ok) {
+                throw new Error(`Discord webhook failed with status ${response.status} ${response.statusText}`);
+              }
+            }
+            break;
+          case 'send_email':
+            if (!env.EMAIL_ROUTER) {
+              throw new Error('EMAIL_ROUTER binding is missing');
+            }
+            const emailResponse = await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (!emailResponse.ok) {
+              const responseBody = await emailResponse.text();
+              throw new Error(
+                `EMAIL_ROUTER request failed with ${emailResponse.status} ${emailResponse.statusText}${responseBody ? `: ${responseBody}` : ''}`,
+              );
+            }
+            break;
+          default:
+            console.log(`[Queue] Unhandled job type: ${type}`);
+        }
+
+        message.ack();
+      } catch (err) {
+        console.error('[Queue] Error processing message:', err);
+        message.retry();
+      }
+    }
   },
 } satisfies ExportedHandler<Env>;
