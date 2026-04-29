@@ -61,7 +61,7 @@ importers:
   worker:
     dependencies:
       hono:
-        specifier: ^4.12.12
+        specifier: ^4.12.14
         version: 4.12.14
     devDependencies:
       '@cloudflare/workers-types':
