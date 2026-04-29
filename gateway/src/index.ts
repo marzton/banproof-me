@@ -212,13 +212,20 @@ export default {
           case 'tier_upgraded': {
             console.log(`[Queue] tier_upgraded:`, payload);
             if (env.DISCORD_WEBHOOK) {
-              await fetch(env.DISCORD_WEBHOOK, {
+              const discordResponse = await fetch(env.DISCORD_WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
                 }),
               });
+
+              if (!discordResponse.ok) {
+                const errorBody = await discordResponse.text();
+                throw new Error(
+                  `Discord webhook failed with ${discordResponse.status} ${discordResponse.statusText}${errorBody ? `: ${errorBody}` : ''}`,
+                );
+              }
             }
             break;
           }
