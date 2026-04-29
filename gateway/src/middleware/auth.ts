@@ -13,24 +13,14 @@
 
 import { MiddlewareHandler } from 'hono';
 import { verify }            from 'hono/jwt';
-import type { AuthContext, JwtPayload } from '../types/api.js';
-
-// ── Bindings needed by this middleware ────────────────────────
-type AuthEnv = {
-  DB:         D1Database;
-  CACHE:      KVNamespace;
-  JWT_SECRET: string;
-};
-
-type AuthVariables = {
-  auth: AuthContext;
-};
+import type { JwtPayload } from '../types/api.js';
+import type { Bindings, Variables } from '../types/env.js';
 
 // ── authMiddleware ────────────────────────────────────────────
 
 export const authMiddleware: MiddlewareHandler<{
-  Bindings:  AuthEnv;
-  Variables: AuthVariables;
+  Bindings:  Bindings;
+  Variables: Variables;
 }> = async (c, next) => {
   const authHeader = c.req.header('Authorization') ?? '';
   const token      = authHeader.startsWith('Bearer ')
@@ -78,8 +68,8 @@ export const authMiddleware: MiddlewareHandler<{
 // ── requireAdmin ──────────────────────────────────────────────
 
 export const requireAdmin: MiddlewareHandler<{
-  Bindings:  AuthEnv;
-  Variables: AuthVariables;
+  Bindings:  Bindings;
+  Variables: Variables;
 }> = async (c, next) => {
   const auth = c.get('auth');
   if (!auth || (auth.role !== 'admin' && auth.role !== 'sudo')) {
@@ -91,8 +81,8 @@ export const requireAdmin: MiddlewareHandler<{
 // ── requireSudo ───────────────────────────────────────────────
 
 export const requireSudo: MiddlewareHandler<{
-  Bindings:  AuthEnv;
-  Variables: AuthVariables;
+  Bindings:  Bindings;
+  Variables: Variables;
 }> = async (c, next) => {
   const auth = c.get('auth');
   if (!auth || auth.role !== 'sudo') {
