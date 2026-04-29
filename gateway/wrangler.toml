@@ -22,35 +22,11 @@ USE_MOCK    = "true"
 #   DISCORD_WEBHOOK → https://discord.com → Server Settings → Integrations → Webhooks
 
 [[routes]]
-pattern   = "api.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "admin.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "preview.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
 pattern   = "banproof.me/api/*"
 zone_name = "banproof.me"
 
 [[routes]]
 pattern   = "banproof.me/admin/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "api.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "admin.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "preview.banproof.me/*"
 zone_name = "banproof.me"
 
 [[routes]]

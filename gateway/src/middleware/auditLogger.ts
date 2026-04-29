@@ -5,12 +5,11 @@
 
 import type { MiddlewareHandler } from 'hono';
 import type { AuditAction } from '../types/api.js';
-import type { Bindings } from '../types/env.js';
 
-export const auditLogger: MiddlewareHandler<{ Bindings: Bindings }> = async (c, next) => {
+export const auditLogger: MiddlewareHandler = async (c, next) => {
   await next();
 
-  const db = c.env.DB;
+  const db: D1Database = (c.env as any).DB;
   if (!db) return;
 
   const userId = c.req.header('X-User-Id') ?? 'anonymous';

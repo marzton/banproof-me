@@ -41,22 +41,19 @@ const BASE_ENV = {
 };
 
 function buildApp() {
-  const app = new Hono<{
-    Bindings: typeof BASE_ENV;
-    Variables: { accessContext: AccessContext };
-  }>();
+  const app = new Hono();
 
   app.use('*', accessControlMiddleware);
 
   // Protected routes
   app.post('/api/pro/analyze', (c) => c.json({ ok: true }));
   app.post('/api/access/sentiment', (c) => {
-    const accessContext = (c as any).get('accessContext') as AccessContext | undefined;
+    const accessContext = c.get('accessContext') as AccessContext | undefined;
     if (!accessContext || !enforceRBAC(accessContext, 'pro')) {
       const status = !accessContext || accessContext.method === 'public' ? 401 : 403;
-      return (c as any).json({ error: "Access denied: 'pro' role required" }, status);
+      return c.json({ error: "Access denied: 'pro' role required" }, status);
     }
-    return (c as any).json({
+    return c.json({
       workflowId: 'sentiment-test-workflow',
       source: 'mock',
       access: {
@@ -75,11 +72,11 @@ function buildApp() {
 
 /** Fetch helper — passes the env object as the second argument (Cloudflare Worker style) */
 function doFetch(
-  app: Hono,
+  app: Hono<any, any, any>,
   request: Request,
   envOverrides: Record<string, string> = {},
 ) {
-  return app.fetch(request, { ...BASE_ENV, ...envOverrides });
+  return app.fetch(request, { ...BASE_ENV, ...envOverrides } as any);
 }
 
 function makeIdentity(overrides: Partial<ZeroEdgeIdentity> = {}): ZeroEdgeIdentity {
@@ -367,8 +364,8 @@ describe('accessControlMiddleware', () => {
 
     // Add a route that reads the context
     app.post('/api/pro/context-check', (c) => {
-      const ctx = (c as any).get('accessContext') as AccessContext;
-      return (c as any).json({ method: ctx?.method, role: ctx?.identity.role });
+      const ctx = c.get('accessContext') as AccessContext;
+      return c.json({ method: ctx?.method, role: ctx?.identity.role });
     });
 
     const res = await doFetch(app, jwtRequest('/api/pro/context-check', 'POST'));
@@ -382,8 +379,8 @@ describe('accessControlMiddleware', () => {
     const app = buildApp();
 
     app.post('/api/pro/context-check', (c) => {
-      const ctx = (c as any).get('accessContext') as AccessContext;
-      return (c as any).json({ method: ctx?.method });
+      const ctx = c.get('accessContext') as AccessContext;
+      return c.json({ method: ctx?.method });
     });
 
     const res = await doFetch(app, agentRequest('/api/pro/context-check', 'POST', TRUSTED_IP));
