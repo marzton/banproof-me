@@ -4,7 +4,7 @@
 
 import { Hono }        from 'hono';
 import { cors }        from 'hono/cors';
-import type { Workflow, MessageBatch, Ai } from '@cloudflare/workers-types';
+import type { Workflow, MessageBatch, Ai, EmailMessage } from '@cloudflare/workers-types';
 import { BanproofEngine } from './engine.js';
 import { SubscriptionPurchaseWorkflow, type SubscriptionPurchaseParams } from './workflows/subscriptionPurchase.js';
 import { rateLimiter }   from './middleware/rateLimiter.js';
@@ -236,16 +236,96 @@ export { BanproofEngine, SubscriptionPurchaseWorkflow };
 export default {
   fetch: app.fetch.bind(app),
 
+  // ── Email handler: Cloudflare Email Routing ────────────────
+  async email(
+    message: EmailMessage,
+    env: Bindings,
+    _ctx: ExecutionContext,
+  ): Promise<void> {
+    if (!env.EMAIL_ROUTER || typeof env.EMAIL_ROUTER.fetch !== 'function') {
+      message.setReject('550 Email router is not configured.');
+      return;
+    }
+
+    const correlationId = crypto.randomUUID();
+    const raw = await new Response(message.raw).text();
+
+    try {
+      const response = await env.EMAIL_ROUTER.fetch('https://email-router.internal/inbound-email', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          correlationId,
+          from: message.from,
+          to: message.to,
+          headers: [...message.headers],
+          raw,
+        }),
+      });
+
+      if (!response.ok) {
+        message.setReject(`550 Email dispatch failed (${response.status}).`);
+      }
+    } catch {
+      message.setReject('550 Email dispatch failed.');
+    }
+  },
+
   // ── Queue consumer: goldshore-jobs ─────────────────────────
   async queue(
     batch: MessageBatch<QueueJobMessage>,
-    _env: Bindings,
+    env: Bindings,
   ): Promise<void> {
     for (const message of batch.messages) {
       try {
-        // TODO: dispatch message.body.type to the appropriate handler.
+        const { type, payload } = message.body;
+
+        switch (type) {
+          case 'tier_upgraded': {
+            console.log(`[Queue] tier_upgraded:`, payload);
+            if (env.DISCORD_WEBHOOK) {
+              const discordResponse = await fetch(env.DISCORD_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+                }),
+              });
+
+              if (!discordResponse.ok) {
+                const errorBody = await discordResponse.text();
+                throw new Error(
+                  `Discord webhook failed with ${discordResponse.status} ${discordResponse.statusText}${errorBody ? `: ${errorBody}` : ''}`,
+                );
+              }
+            }
+            break;
+          }
+
+          case 'send_email': {
+            if (!env.EMAIL_ROUTER) {
+              throw new Error('EMAIL_ROUTER binding is missing');
+            }
+            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            break;
+          }
+
+          case 'sync_user': {
+            console.log(`[Queue] sync_user job:`, payload);
+            break;
+          }
+
+          default:
+            console.warn(`[Queue] Unknown job type: ${type}`);
+        }
+
         message.ack();
-      } catch {
+      } catch (err) {
+        console.error('[Queue] Job processing failed:', err);
         message.retry();
       }
     }
