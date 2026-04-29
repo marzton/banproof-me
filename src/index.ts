@@ -185,7 +185,9 @@ export default {
     for (const message of batch.messages) {
       try {
         const { type, payload } = message.body;
-        console.log(`[Queue] Processing job: ${type}`, payload);
+        const correlationId =
+          typeof payload?.correlationId === 'string' ? payload.correlationId : undefined;
+        console.log(`[Queue] Processing job: ${type}`, { correlationId });
 
         // Record event in analytics
         if (env.ANALYTICS) {
