@@ -41,10 +41,7 @@ const BASE_ENV = {
 };
 
 function buildApp() {
-  const app = new Hono<{
-    Bindings: typeof BASE_ENV;
-    Variables: { accessContext: AccessContext };
-  }>();
+  const app = new Hono();
 
   app.use('*', accessControlMiddleware);
 
