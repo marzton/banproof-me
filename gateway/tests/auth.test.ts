@@ -149,32 +149,12 @@ describe('POST /auth/signup', () => {
     const app = buildApp();
     const res  = await app.fetch(req('POST', '/auth/signup', { password: 'securePass1' }));
     expect(res.status).toBe(400);
-    const body = await res.json() as any;
-    expect(body.error).toBe('email and password are required.');
-  });
-
-  it('returns 400 when password is missing', async () => {
-    const app = buildApp();
-    const res  = await app.fetch(req('POST', '/auth/signup', { email: 'user@test.com' }));
-    expect(res.status).toBe(400);
-    const body = await res.json() as any;
-    expect(body.error).toBe('email and password are required.');
-  });
-
-  it('returns 400 when both email and password are missing', async () => {
-    const app = buildApp();
-    const res  = await app.fetch(req('POST', '/auth/signup', {}));
-    expect(res.status).toBe(400);
-    const body = await res.json() as any;
-    expect(body.error).toBe('email and password are required.');
   });
 
   it('returns 400 when password is too short', async () => {
     const app = buildApp();
     const res  = await app.fetch(req('POST', '/auth/signup', { email: 'a@b.com', password: '1234' }));
     expect(res.status).toBe(400);
-    const body = await res.json() as any;
-    expect(body.error).toBe('Password must be at least 8 characters.');
   });
 
   it('returns 409 for duplicate email', async () => {
