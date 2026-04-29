@@ -16,11 +16,6 @@ binding = "ASSETS"
 [vars]
 ENV = "production"
 
-# Secrets (wrangler secret put <n> --name banproof-me):
-#   POA_TOKEN
-#   AUDIT_TOKEN
-#   OPENAI_API_KEY
-
 [[kv_namespaces]]
 binding = "GS_CONFIG"
 id = "5f13370575784c9dacff522121104cb3"
@@ -50,11 +45,6 @@ class_name = "ContentProcessingWorkflow"
 binding = "GS_EVENTS"
 queue = "goldshore-jobs"
 
-# Routes — banproof.me only (was wrongly pointing to rmarston.com)
 [[routes]]
-pattern = "banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern = "www.banproof.me/*"
+pattern = "preview.banproof.me/*"
 zone_name = "banproof.me"
