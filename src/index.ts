@@ -19,6 +19,9 @@ export interface Env {
   MEDIA_STORE: R2Bucket;
   CONTENT_WORKFLOW: Workflow;
   GS_EVENTS: Queue;
+  EMAIL_ROUTER?: Fetcher;
+  SEND_EMAIL?: { send: (msg: any) => Promise<void> };
+  ANALYTICS?: { write: (data: any) => void };
   ENV: string;
   POA_TOKEN: string;
   AUDIT_TOKEN: string;
@@ -169,5 +172,59 @@ export default {
 
     // Serve static site for all other routes
     return env.ASSETS.fetch(request);
+  },
+
+  async queue(batch: MessageBatch<QueueJobMessage>, env: Env): Promise<void> {
+    for (const message of batch.messages) {
+      try {
+        const { type, payload } = message.body;
+        console.log(`[Queue] Processing job: ${type}`, payload);
+
+        // Record event in analytics
+        if (env.ANALYTICS) {
+          env.ANALYTICS.write({
+            doubles: [1],
+            blobs: [type, JSON.stringify(payload)],
+          });
+        }
+
+        switch (type) {
+          case 'tier_upgraded':
+            if (env.DISCORD_WEBHOOK) {
+              await fetch(env.DISCORD_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+                }),
+              });
+            }
+            break;
+
+          case 'send_email':
+            if (!env.EMAIL_ROUTER) {
+              throw new Error('EMAIL_ROUTER binding is missing');
+            }
+            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            break;
+
+          case 'sync_user':
+            // Logic for user synchronization could go here
+            break;
+
+          default:
+            console.warn(`[Queue] Unhandled job type: ${type}`);
+        }
+
+        message.ack();
+      } catch (err) {
+        console.error('[Queue] Error processing message:', err);
+        message.retry();
+      }
+    }
   },
 } satisfies ExportedHandler<Env>;

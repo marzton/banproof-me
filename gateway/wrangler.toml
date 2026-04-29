@@ -22,11 +22,15 @@ USE_MOCK    = "true"
 #   DISCORD_WEBHOOK → https://discord.com → Server Settings → Integrations → Webhooks
 
 [[routes]]
-pattern   = "banproof.me/api/*"
+pattern   = "api.banproof.me/*"
 zone_name = "banproof.me"
 
 [[routes]]
-pattern   = "banproof.me/admin/*"
+pattern   = "admin.banproof.me/*"
+zone_name = "banproof.me"
+
+[[routes]]
+pattern   = "preview.banproof.me/*"
 zone_name = "banproof.me"
 
 [[routes]]
@@ -118,6 +122,15 @@ service = "saas-admin-template-customer-workflow"
 [[services]]
 binding = "EMAIL_ROUTER"
 service = "banproof-email-router"
+
+# ── Analytics Engine ──────────────────────────────────────────
+[[analytics_engines]]
+binding = "ANALYTICS"
+dataset = "banproof_events"
+
+# ── Email Routing ─────────────────────────────────────────────
+[[send_email]]
+name = "SEND_EMAIL"
 
 # ── Queue Producer (binding: QUEUE) ───────────────────────────
 # Enqueue background jobs for the goldshore-jobs consumer pipeline.
