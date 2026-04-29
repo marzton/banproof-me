@@ -4,7 +4,7 @@
 
 import { Hono }        from 'hono';
 import { cors }        from 'hono/cors';
-import type { Workflow, MessageBatch, Ai } from '@cloudflare/workers-types';
+import type { Workflow, MessageBatch, Ai, EmailMessage } from '@cloudflare/workers-types';
 import { BanproofEngine } from './engine.js';
 import { SubscriptionPurchaseWorkflow, type SubscriptionPurchaseParams } from './workflows/subscriptionPurchase.js';
 import { rateLimiter }   from './middleware/rateLimiter.js';
@@ -235,6 +235,41 @@ export { BanproofEngine, SubscriptionPurchaseWorkflow };
 
 export default {
   fetch: app.fetch.bind(app),
+
+  // ── Email handler: Cloudflare Email Routing ────────────────
+  async email(
+    message: EmailMessage,
+    env: Bindings,
+    _ctx: ExecutionContext,
+  ): Promise<void> {
+    if (!env.EMAIL_ROUTER || typeof env.EMAIL_ROUTER.fetch !== 'function') {
+      message.setReject('550 Email router is not configured.');
+      return;
+    }
+
+    const correlationId = crypto.randomUUID();
+    const raw = await new Response(message.raw).text();
+
+    try {
+      const response = await env.EMAIL_ROUTER.fetch('https://email-router.internal/inbound-email', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          correlationId,
+          from: message.from,
+          to: message.to,
+          headers: [...message.headers],
+          raw,
+        }),
+      });
+
+      if (!response.ok) {
+        message.setReject(`550 Email dispatch failed (${response.status}).`);
+      }
+    } catch {
+      message.setReject('550 Email dispatch failed.');
+    }
+  },
 
   // ── Queue consumer: goldshore-jobs ─────────────────────────
   async queue(
