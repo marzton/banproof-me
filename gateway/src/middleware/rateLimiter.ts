@@ -12,6 +12,7 @@
 
 import type { MiddlewareHandler } from 'hono';
 import type { AuditAction } from '../types/api.js';
+import type { Bindings } from '../types/env.js';
 
 const TIER_LIMITS: Record<string, number | null> = {
   free:   10,
@@ -19,7 +20,7 @@ const TIER_LIMITS: Record<string, number | null> = {
   agency: null, // unlimited
 };
 
-export const rateLimiter: MiddlewareHandler = async (c, next) => {
+export const rateLimiter: MiddlewareHandler<{ Bindings: Bindings }> = async (c, next) => {
   const userId: string = c.req.header('X-User-Id') ?? 'anonymous';
   const tier: string   = (c.req.header('X-User-Tier') ?? 'free').toLowerCase();
 
@@ -33,7 +34,7 @@ export const rateLimiter: MiddlewareHandler = async (c, next) => {
   const minuteTs = Math.floor(Date.now() / 60_000);
   const kvKey    = `ratelimit:${userId}:${minuteTs}`;
 
-  const cache: KVNamespace = (c.env as any).CACHE;
+  const cache = c.env.CACHE;
 
   // Increment counter atomically within the current minute window
   let count = 1;
@@ -45,7 +46,7 @@ export const rateLimiter: MiddlewareHandler = async (c, next) => {
   // Hard reject when limit is reached — skip KV write to avoid inflating count
   if (count > limit) {
     // Fire-and-forget audit log
-    const db: D1Database = (c.env as any).DB;
+    const db = c.env.DB;
     if (db) {
       const action: AuditAction = 'RATE_LIMIT_HIT';
       c.executionCtx?.waitUntil(
