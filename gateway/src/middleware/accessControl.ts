@@ -172,10 +172,10 @@ export const accessControlMiddleware: MiddlewareHandler<{
 
     // Check IP whitelist for admin routes that require it
     if (permission.requireTrustedIp) {
-      const rawIps = c.env.TRUSTED_ADMIN_IPS ?? DEFAULT_TRUSTED_ADMIN_IPS.join(',');
-      const trustedIps = rawIps.split(',').map((ip) => ip.trim());
+      const adminIps = c.env.TRUSTED_ADMIN_IPS ?? DEFAULT_TRUSTED_ADMIN_IPS.join(',');
+      const adminTrustedIps = adminIps.split(',').map((ip) => ip.trim());
 
-      if (!trustedIps.includes(ipAddress)) {
+      if (!adminTrustedIps.includes(ipAddress)) {
         console.warn(
           `[Access Control] IP whitelist denied — path=${path} ip=${ipAddress}`,
         );
