@@ -1,4 +1,4 @@
-name = "banproof-me"
+name = "banproof.me"
 main = "src/index.ts"
 compatibility_date = "2025-09-27"
 compatibility_flags = ["nodejs_compat"]
@@ -15,11 +15,6 @@ binding = "ASSETS"
 
 [vars]
 ENV = "production"
-
-# Secrets (wrangler secret put <n> --name banproof-me):
-#   POA_TOKEN
-#   AUDIT_TOKEN
-#   OPENAI_API_KEY
 
 [[kv_namespaces]]
 binding = "GS_CONFIG"
@@ -50,7 +45,28 @@ class_name = "ContentProcessingWorkflow"
 binding = "GS_EVENTS"
 queue = "goldshore-jobs"
 
-# Routes — banproof.me only (was wrongly pointing to rmarston.com)
+[[routes]]
+pattern = "preview.banproof.me/*"
+zone_name = "banproof.me"
+[[queues.consumers]]
+queue = "goldshore-jobs"
+max_batch_size = 10
+max_batch_timeout = 30
+
+# Email routing
+[[send_email]]
+name = "SEND_EMAIL"
+
+# Service bindings
+[[services]]
+binding = "EMAIL_ROUTER"
+service = "banproof-email-router"
+
+# Analytics Engine
+[[analytics_engines]]
+binding = "ANALYTICS"
+dataset = "banproof_events"
+
 [[routes]]
 pattern = "banproof.me/*"
 zone_name = "banproof.me"
