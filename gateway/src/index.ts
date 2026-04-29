@@ -213,20 +213,24 @@ export default {
     const correlationId = crypto.randomUUID();
     const raw = await new Response(message.raw).text();
 
-    const response = await env.EMAIL_ROUTER.fetch('https://email-router.internal/inbound-email', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        correlationId,
-        from: message.from,
-        to: message.to,
-        headers: [...message.headers],
-        raw,
-      }),
-    });
+    try {
+      const response = await env.EMAIL_ROUTER.fetch('https://email-router.internal/inbound-email', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          correlationId,
+          from: message.from,
+          to: message.to,
+          headers: [...message.headers],
+          raw,
+        }),
+      });
 
-    if (!response.ok) {
-      message.setReject(`550 Email dispatch failed (${response.status}).`);
+      if (!response.ok) {
+        message.setReject(`550 Email dispatch failed (${response.status}).`);
+      }
+    } catch {
+      message.setReject('550 Email dispatch failed.');
     }
   },
 
