@@ -54,7 +54,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
     const startedAt = new Date().toISOString();
 
     try {
-      const payload = await step.do('validate-input', async () => {
+      const payload = await step.do('validate-input', async (): Promise<ValidatedPayload> => {
         const raw = event.payload;
         const targetTier = raw?.targetTier;
         if (!raw?.userId || typeof raw.userId !== 'string') {
@@ -81,7 +81,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
         } satisfies ValidatedPayload;
       });
 
-      const duplicate = await step.do('idempotency-check', async () => {
+      const duplicate = await step.do('idempotency-check', async (): Promise<{ alreadyProcessed: boolean }> => {
         const row = await withRetries(() =>
           this.env.DB.prepare(
             `SELECT id FROM audit_log
@@ -104,7 +104,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
         };
       }
 
-      const subscription = await step.do('upsert-subscription', async () => {
+      const subscription = await step.do('upsert-subscription', async (): Promise<{ id: string; operation: 'updated' | 'inserted' }> => {
         return withRetries(async () => {
           const existing = await this.env.DB.prepare(
             `SELECT id FROM subscriptions WHERE user_id = ? LIMIT 1`,
@@ -160,7 +160,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
         });
       });
 
-      await step.do('update-user-tier', async () => {
+      await step.do('update-user-tier', async (): Promise<{ previousTier: PlanTier; nextTier: PlanTier }> => {
         return withRetries(async () => {
           const user = await this.env.DB.prepare(
             `SELECT plan_tier FROM users WHERE id = ? LIMIT 1`,
@@ -186,7 +186,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
         });
       });
 
-      const auditId = await step.do('write-audit-log', async () => {
+      const auditId = await step.do('write-audit-log', async (): Promise<number | null> => {
         return withRetries(async () => {
           const auditMetadata = {
             paymentEventId: payload.paymentEvent.eventId,
@@ -210,7 +210,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
       });
 
       if (payload.notify && this.env.QUEUE) {
-        await step.do('enqueue-notification', async () => {
+        await step.do('enqueue-notification', async (): Promise<{ enqueued: true }> => {
           await withRetries(() =>
             this.env.QUEUE!.send({
               type: 'tier_upgraded',
@@ -234,7 +234,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
     } catch (err) {
       if (previousTier) {
         try {
-          await step.do('rollback-user-tier', async () => {
+          await step.do('rollback-user-tier', async (): Promise<{ rolledBackTo: PlanTier }> => {
             await this.env.DB.prepare(
               `UPDATE users SET plan_tier = ? WHERE id = ?`,
             )
@@ -247,7 +247,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
         }
       }
 
-      await step.do('write-failure-audit', async () => {
+      await step.do('write-failure-audit', async (): Promise<void> => {
         await this.env.DB.prepare(
           `INSERT INTO audit_log (user_id, action, metadata)
            VALUES (?, 'tier_change_failed', ?)`,

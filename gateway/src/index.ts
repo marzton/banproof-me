@@ -4,7 +4,7 @@
 
 import { Hono }        from 'hono';
 import { cors }        from 'hono/cors';
-import type { Workflow, MessageBatch, Ai } from '@cloudflare/workers-types';
+import type { Workflow, MessageBatch, Ai, EmailMessage } from '@cloudflare/workers-types';
 import { BanproofEngine } from './engine.js';
 import { SubscriptionPurchaseWorkflow, type SubscriptionPurchaseParams } from './workflows/subscriptionPurchase.js';
 import { rateLimiter }   from './middleware/rateLimiter.js';
@@ -15,46 +15,9 @@ import { accessControlMiddleware } from './middleware/accessControl.js';
 import { enforceRBAC } from './middleware/zeroEdgeSSO.js';
 import authRoutes      from './routes/auth.js';
 import adminRoutes     from './routes/admin.js';
-import type { AccessContext } from './types/access.js';
+import type { Bindings, Variables, QueueJobMessage } from './types/env.js';
 import { SentimentWorkflow } from './workflows/sentimentWorkflow.js';
 import adminEmailRoutes from './routes/adminEmail.js';
-
-// ── Bindings type ─────────────────────────────────────────────
-type Bindings = {
-  DB:               D1Database;
-  CACHE:            KVNamespace;
-  INFRA_SECRETS:    KVNamespace;
-  ENGINE:           Workflow;
-  PURCHASE_WORKFLOW: Workflow;
-  STORAGE:          R2Bucket;
-  AI:               Ai;
-  ENVIRONMENT:      string;
-  USE_MOCK:         string;
-  JWT_SECRET:       string;
-  CORS_ORIGINS?:    string;
-  HF_API_TOKEN?:    string;
-  ODDS_API_KEY?:    string;
-  DISCORD_WEBHOOK?: string;
-  /** Service binding → saas-admin-template-customer-workflow */
-  WORKFLOW:         Fetcher;
-  /** Service binding → banproof-email-router */
-  EMAIL_ROUTER:     Fetcher;
-  /** Queue producer → goldshore-jobs */
-  QUEUE:            Queue<QueueJobMessage>;
-};
-
-type Variables = {
-  auth: import('./types/api.js').AuthContext;
-  poaScore?: number;
-  accessContext?: AccessContext;
-};
-
-// ── Queue message schema ──────────────────────────────────────
-type QueueJobMessage = {
-  /** Discriminates the job variant (e.g. 'sync_user', 'send_email'). */
-  type: string;
-  payload: Record<string, unknown>;
-};
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -64,7 +27,7 @@ app.use(
   cors({
     origin: (origin, c) => {
       const allowList = c.env.CORS_ORIGINS
-        ? c.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+        ? c.env.CORS_ORIGINS.split(',').map((o: string) => o.trim())
         : ['https://banproof.me', 'http://localhost:5500', 'http://localhost:8788'];
       return allowList.includes(origin) ? origin : null;
     },
@@ -236,6 +199,41 @@ export { BanproofEngine, SubscriptionPurchaseWorkflow };
 export default {
   fetch: app.fetch.bind(app),
 
+  // ── Email handler: Cloudflare Email Routing ────────────────
+  async email(
+    message: EmailMessage,
+    env: Bindings,
+    _ctx: ExecutionContext,
+  ): Promise<void> {
+    if (!env.EMAIL_ROUTER || typeof env.EMAIL_ROUTER.fetch !== 'function') {
+      message.setReject('550 Email router is not configured.');
+      return;
+    }
+
+    const correlationId = crypto.randomUUID();
+    const raw = await new Response(message.raw).text();
+
+    try {
+      const response = await env.EMAIL_ROUTER.fetch('https://email-router.internal/inbound-email', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          correlationId,
+          from: message.from,
+          to: message.to,
+          headers: [...message.headers],
+          raw,
+        }),
+      });
+
+      if (!response.ok) {
+        message.setReject(`550 Email dispatch failed (${response.status}).`);
+      }
+    } catch {
+      message.setReject('550 Email dispatch failed.');
+    }
+  },
+
   // ── Queue consumer: goldshore-jobs ─────────────────────────
   async queue(
     batch: MessageBatch<QueueJobMessage>,
@@ -244,6 +242,52 @@ export default {
     for (const message of batch.messages) {
       try {
         // TODO: dispatch message.body.type to the appropriate handler.
+        const { type, payload } = message.body;
+        console.log(`[Queue] Processing job: ${type}`, payload);
+
+        // Record event in analytics if available
+        if (env.ANALYTICS) {
+          env.ANALYTICS.write({
+            doubles: [1],
+            blobs: [type, JSON.stringify(payload)],
+          });
+        }
+
+        switch (type) {
+          case 'tier_upgraded': {
+            if (env.DISCORD_WEBHOOK) {
+              await fetch(env.DISCORD_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+                }),
+              });
+            }
+            break;
+          }
+
+          case 'send_email': {
+            if (!env.EMAIL_ROUTER) {
+              throw new Error('EMAIL_ROUTER binding is missing');
+            }
+            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            break;
+          }
+
+          case 'sync_user': {
+            // Logic for user synchronization could go here
+            break;
+          }
+
+          default:
+            console.warn(`[Queue] Unknown job type: ${type}`);
+        }
+
         message.ack();
       } catch {
         message.retry();
