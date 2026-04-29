@@ -27,7 +27,7 @@ app.use(
   cors({
     origin: (origin, c) => {
       const allowList = c.env.CORS_ORIGINS
-        ? c.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+        ? c.env.CORS_ORIGINS.split(',').map((o: string) => o.trim())
         : ['https://banproof.me', 'http://localhost:5500', 'http://localhost:8788'];
       return allowList.includes(origin) ? origin : null;
     },
