@@ -239,13 +239,58 @@ export default {
   // ── Queue consumer: goldshore-jobs ─────────────────────────
   async queue(
     batch: MessageBatch<QueueJobMessage>,
-    _env: Bindings,
+    env: Bindings,
   ): Promise<void> {
     for (const message of batch.messages) {
       try {
-        // TODO: dispatch message.body.type to the appropriate handler.
+        const { type, payload } = message.body;
+
+        switch (type) {
+          case 'tier_upgraded': {
+            console.log(`[Queue] tier_upgraded:`, payload);
+            if (env.DISCORD_WEBHOOK) {
+              const discordResponse = await fetch(env.DISCORD_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+                }),
+              });
+
+              if (!discordResponse.ok) {
+                const errorBody = await discordResponse.text();
+                throw new Error(
+                  `Discord webhook failed with ${discordResponse.status} ${discordResponse.statusText}${errorBody ? `: ${errorBody}` : ''}`,
+                );
+              }
+            }
+            break;
+          }
+
+          case 'send_email': {
+            if (!env.EMAIL_ROUTER) {
+              throw new Error('EMAIL_ROUTER binding is missing');
+            }
+            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            break;
+          }
+
+          case 'sync_user': {
+            console.log(`[Queue] sync_user job:`, payload);
+            break;
+          }
+
+          default:
+            console.warn(`[Queue] Unknown job type: ${type}`);
+        }
+
         message.ack();
-      } catch {
+      } catch (err) {
+        console.error('[Queue] Job processing failed:', err);
         message.retry();
       }
     }
