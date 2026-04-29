@@ -10,12 +10,6 @@
  */
 
 import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from 'cloudflare:workers';
-import type { MessageBatch } from '@cloudflare/workers-types';
-
-export type QueueJobMessage = {
-  type: string;
-  payload: Record<string, any>;
-};
 
 export interface Env {
   ASSETS: Fetcher;
@@ -32,7 +26,6 @@ export interface Env {
   POA_TOKEN: string;
   AUDIT_TOKEN: string;
   OPENAI_API_KEY: string;
-  DISCORD_WEBHOOK?: string;
 }
 
 type WorkflowParams = {

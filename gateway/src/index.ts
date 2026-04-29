@@ -27,7 +27,7 @@ app.use(
   cors({
     origin: (origin, c) => {
       const allowList = c.env.CORS_ORIGINS
-        ? c.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+        ? c.env.CORS_ORIGINS.split(',').map((o: string) => o.trim())
         : ['https://banproof.me', 'http://localhost:5500', 'http://localhost:8788'];
       return allowList.includes(origin) ? origin : null;
     },
@@ -237,10 +237,11 @@ export default {
   // ── Queue consumer: goldshore-jobs ─────────────────────────
   async queue(
     batch: MessageBatch<QueueJobMessage>,
-    env: Bindings,
+    _env: Bindings,
   ): Promise<void> {
     for (const message of batch.messages) {
       try {
+        // TODO: dispatch message.body.type to the appropriate handler.
         const { type, payload } = message.body;
         console.log(`[Queue] Processing job: ${type}`, payload);
 
@@ -288,8 +289,7 @@ export default {
         }
 
         message.ack();
-      } catch (err) {
-        console.error('[Queue] Job processing failed:', err);
+      } catch {
         message.retry();
       }
     }
