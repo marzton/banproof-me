@@ -1,4 +1,4 @@
-name                = "banproof-core"
+name                = "banproof.me"
 main                = "src/index.ts"
 compatibility_date  = "2026-04-01"
 compatibility_flags = ["nodejs_compat"]
@@ -6,20 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 ENVIRONMENT = "production"
 USE_MOCK    = "true"
-
-# ── Secrets (never put plaintext values here) ─────────────────
-# Upload each secret with:
-#   wrangler secret put HF_API_TOKEN    --config gateway/wrangler.toml
-#   wrangler secret put ODDS_API_KEY    --config gateway/wrangler.toml
-#   wrangler secret put DISCORD_WEBHOOK --config gateway/wrangler.toml
-#
-# For local dev: copy gateway/.dev.vars.example → gateway/.dev.vars
-# and fill in values (file is git-ignored via .gitignore).
-#
-# Key generation links:
-#   HF_API_TOKEN    → https://huggingface.co/settings/tokens
-#   ODDS_API_KEY    → https://the-odds-api.com/#get-access
-#   DISCORD_WEBHOOK → https://discord.com → Server Settings → Integrations → Webhooks
+CF_ACCESS_AUDIENCE = "18f2fecc663c66d5de8fd7b6c08def28b0496216669af44abf51ac221b6b40e5"
 
 [[routes]]
 pattern   = "api.banproof.me/*"
@@ -44,23 +31,6 @@ zone_name = "rmarston.com"
 [observability]
 enabled = true
 
-# ── Cloudflare Access (Zero-Edge SSO) ─────────────────────────
-# CF_ZERO_EDGE_PUBLIC_KEY is a secret; set it with:
-# `wrangler secret put CF_ZERO_EDGE_PUBLIC_KEY --config gateway/wrangler.toml`
-[vars]
-CF_ACCESS_AUDIENCE = "18f2fecc663c66d5de8fd7b6c08def28b0496216669af44abf51ac221b6b40e5"
-
-# ── Production environment ────────────────────────────────────
-[env.production]
-[env.production.vars]
-CF_ACCESS_AUDIENCE = "18f2fecc663c66d5de8fd7b6c08def28b0496216669af44abf51ac221b6b40e5"
-
-# ── Development environment (mock SSO for local testing) ──────
-[env.development]
-[env.development.vars]
-CF_ACCESS_AUDIENCE   = "development"
-TRUSTED_ADMIN_IPS    = "127.0.0.1,::1,100.100.100.1,100.200.200.2"
-
 # ── D1 Database (binding: DB) ─────────────────────────────────
 [[d1_databases]]
 binding       = "DB"
@@ -77,9 +47,6 @@ binding = "INFRA_SECRETS"
 id      = "b9824d3280c54573a24137c7e7143b33"
 
 # ── R2 Object Storage (binding: STORAGE) ─────────────────────
-# Stores workflow results, audit snapshots, and uploaded assets.
-# Create the bucket first (if not already provisioned):
-#   wrangler r2 bucket create f77de112d2019e5456a3198a8bb50bd2
 [[r2_buckets]]
 binding     = "STORAGE"
 bucket_name = "f77de112d2019e5456a3198a8bb50bd2"
@@ -100,9 +67,6 @@ class_name = "SubscriptionPurchaseWorkflow"
 binding = "AI"
 
 # ── Service Bindings ──────────────────────────────────────────
-# Zero-latency internal call to the SaaS customer workflow worker.
-# `wrangler secret put CF_WORKFLOW_TOKEN` if the downstream worker
-# enforces CF Access service tokens.
 [[services]]
 binding = "WORKFLOW"
 service = "saas-admin-template-customer-workflow"
@@ -121,34 +85,19 @@ dataset = "banproof_events"
 name = "SEND_EMAIL"
 
 # ── Queue Producer (binding: QUEUE) ───────────────────────────
-# Enqueue background jobs for the goldshore-jobs consumer pipeline.
-# Create the queue first:
-#   wrangler queues create goldshore-jobs
 [[queues.producers]]
 binding = "QUEUE"
 queue   = "goldshore-jobs"
 
 # ── Queue Consumer ────────────────────────────────────────────
-# This same worker processes messages from goldshore-jobs.
-# Tune max_batch_size / max_batch_timeout to taste.
 [[queues.consumers]]
 queue             = "goldshore-jobs"
 max_batch_size    = 10
 max_batch_timeout = 30
 
-# ── Non-secret vars (production defaults) ────────────────────
-[vars]
-ENVIRONMENT = "production"
-USE_MOCK    = "true"
-# Flip USE_MOCK to "false" only after manual UI verification on mobile.
-# JWT_SECRET must be set via: wrangler secret put JWT_SECRET
-
 # ── Development environment ───────────────────────────────────
-# NOTE: Dev and staging share the production D1 database for now.
-# This is safe because USE_MOCK=true means no real API calls are made.
-# Create separate D1 instances when ready to test with real data.
 [env.development]
-vars = { ENVIRONMENT = "development", USE_MOCK = "true" }
+vars = { ENVIRONMENT = "development", USE_MOCK = "true", CF_ACCESS_AUDIENCE = "development", TRUSTED_ADMIN_IPS = "127.0.0.1,::1,100.100.100.1,100.200.200.2" }
 
 [[env.development.d1_databases]]
 binding       = "DB"
