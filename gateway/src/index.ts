@@ -15,9 +15,46 @@ import { accessControlMiddleware } from './middleware/accessControl.js';
 import { enforceRBAC } from './middleware/zeroEdgeSSO.js';
 import authRoutes      from './routes/auth.js';
 import adminRoutes     from './routes/admin.js';
-import type { Bindings, Variables, QueueJobMessage } from './types/env.js';
+import type { AccessContext } from './types/access.js';
 import { SentimentWorkflow } from './workflows/sentimentWorkflow.js';
 import adminEmailRoutes from './routes/adminEmail.js';
+
+// ── Bindings type ─────────────────────────────────────────────
+type Bindings = {
+  DB:               D1Database;
+  CACHE:            KVNamespace;
+  INFRA_SECRETS:    KVNamespace;
+  ENGINE:           Workflow;
+  PURCHASE_WORKFLOW: Workflow;
+  STORAGE:          R2Bucket;
+  AI:               Ai;
+  ENVIRONMENT:      string;
+  USE_MOCK:         string;
+  JWT_SECRET:       string;
+  CORS_ORIGINS?:    string;
+  HF_API_TOKEN?:    string;
+  ODDS_API_KEY?:    string;
+  DISCORD_WEBHOOK?: string;
+  /** Service binding → saas-admin-template-customer-workflow */
+  WORKFLOW:         Fetcher;
+  /** Service binding → banproof-email-router */
+  EMAIL_ROUTER:     Fetcher;
+  /** Queue producer → goldshore-jobs */
+  QUEUE:            Queue<QueueJobMessage>;
+};
+
+type Variables = {
+  auth: import('./types/api.js').AuthContext;
+  poaScore?: number;
+  accessContext?: AccessContext;
+};
+
+// ── Queue message schema ──────────────────────────────────────
+type QueueJobMessage = {
+  /** Discriminates the job variant (e.g. 'sync_user', 'send_email'). */
+  type: string;
+  payload: Record<string, unknown>;
+};
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -202,13 +239,58 @@ export default {
   // ── Queue consumer: goldshore-jobs ─────────────────────────
   async queue(
     batch: MessageBatch<QueueJobMessage>,
-    _env: Bindings,
+    env: Bindings,
   ): Promise<void> {
     for (const message of batch.messages) {
       try {
-        // TODO: dispatch message.body.type to the appropriate handler.
+        const { type, payload } = message.body;
+
+        switch (type) {
+          case 'tier_upgraded': {
+            console.log(`[Queue] tier_upgraded:`, payload);
+            if (env.DISCORD_WEBHOOK) {
+              const discordResponse = await fetch(env.DISCORD_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+                }),
+              });
+
+              if (!discordResponse.ok) {
+                const errorBody = await discordResponse.text();
+                throw new Error(
+                  `Discord webhook failed with ${discordResponse.status} ${discordResponse.statusText}${errorBody ? `: ${errorBody}` : ''}`,
+                );
+              }
+            }
+            break;
+          }
+
+          case 'send_email': {
+            if (!env.EMAIL_ROUTER) {
+              throw new Error('EMAIL_ROUTER binding is missing');
+            }
+            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            break;
+          }
+
+          case 'sync_user': {
+            console.log(`[Queue] sync_user job:`, payload);
+            break;
+          }
+
+          default:
+            console.warn(`[Queue] Unknown job type: ${type}`);
+        }
+
         message.ack();
-      } catch {
+      } catch (err) {
+        console.error('[Queue] Job processing failed:', err);
         message.retry();
       }
     }
