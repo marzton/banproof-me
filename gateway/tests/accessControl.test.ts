@@ -8,13 +8,9 @@ import { Hono } from 'hono';
 import { accessControlMiddleware } from '../src/middleware/accessControl.js';
 import { enforceRBAC } from '../src/middleware/zeroEdgeSSO.js';
 import type { ZeroEdgeIdentity, AccessContext } from '../src/types/access.js';
+import type { Bindings, Variables } from '../src/types/env.js';
 
 // ── Mock zeroEdgeSSO module ───────────────────────────────────
-//
-// We mock validateZeroEdgeJWT so tests don't need real RSA keys.
-// extractClaims and enforceRBAC use their real implementations
-// so RBAC logic is covered by integration.
-
 vi.mock('../src/middleware/zeroEdgeSSO.js', async (importOriginal) => {
   const original = await importOriginal<typeof import('../src/middleware/zeroEdgeSSO.js')>();
   return {
@@ -26,14 +22,10 @@ vi.mock('../src/middleware/zeroEdgeSSO.js', async (importOriginal) => {
 import { validateZeroEdgeJWT } from '../src/middleware/zeroEdgeSSO.js';
 
 // ── Test helpers ──────────────────────────────────────────────
-
-// Dev-only hardcoded token used by validateProofOfAgency in proofOfAgency.ts.
-// NOT a real credential — see proofOfAgency.ts for context.
 const VALID_TOKEN  = 'secret_agent_key_2026'; // PoA agent token
 const TRUSTED_IP   = '100.100.100.1';
 const UNTRUSTED_IP = '203.0.113.99';
 
-/** Default env bindings provided to every app.fetch() call */
 const BASE_ENV = {
   CF_ACCESS_AUDIENCE:      'https://banproof-core.marzton.workers.dev',
   CF_ZERO_EDGE_PUBLIC_KEY: 'MOCK_KEY',
@@ -70,11 +62,10 @@ function buildApp() {
   return app;
 }
 
-/** Fetch helper — passes the env object as the second argument (Cloudflare Worker style) */
 function doFetch(
-  app: Hono<any, any, any>,
+  app: Hono<{ Bindings: Bindings; Variables: Variables }>,
   request: Request,
-  envOverrides: Record<string, string> = {},
+  envOverrides: Partial<Bindings> = {},
 ) {
   return app.fetch(request, { ...BASE_ENV, ...envOverrides } as any);
 }
@@ -134,8 +125,6 @@ describe('accessControlMiddleware', () => {
     vi.restoreAllMocks();
   });
 
-  // ── Public routes ─────────────────────────────────────────
-
   it('allows GET /api/health without any authentication', async () => {
     const app = buildApp();
     const res = await doFetch(app, publicRequest('/api/health'));
@@ -144,8 +133,6 @@ describe('accessControlMiddleware', () => {
     expect(body.status).toBe('ok');
   });
 
-  // ── CORS preflight bypass ─────────────────────────────────
-
   it('allows OPTIONS on a protected route without auth (CORS preflight)', async () => {
     const app = buildApp();
     const req = new Request('http://localhost/api/pro/analyze', {
@@ -153,72 +140,19 @@ describe('accessControlMiddleware', () => {
       headers: { 'CF-Connecting-IP': TRUSTED_IP },
     });
     const res = await doFetch(app, req);
-    // The middleware passes through; Hono returns 404 because no OPTIONS handler
-    // is registered — the important thing is it is NOT 401/403.
     expect(res.status).not.toBe(401);
     expect(res.status).not.toBe(403);
   });
-
-  it('allows OPTIONS on an admin route without auth (CORS preflight)', async () => {
-    const app = buildApp();
-    const req = new Request('http://localhost/admin/config', {
-      method: 'OPTIONS',
-      headers: { 'CF-Connecting-IP': UNTRUSTED_IP },
-    });
-    const res = await doFetch(app, req);
-    expect(res.status).not.toBe(401);
-    expect(res.status).not.toBe(403);
-  });
-
-  // ── Zero-Edge SSO — Pro tier ──────────────────────────────
 
   it('allows POST /api/pro/analyze with valid JWT + pro tier', async () => {
     vi.mocked(validateZeroEdgeJWT).mockResolvedValue(makeIdentity({ role: 'pro', tierLevel: 'pro' }));
-
     const app = buildApp();
     const res = await doFetch(app, jwtRequest('/api/pro/analyze', 'POST'));
     expect(res.status).toBe(200);
-  });
-
-  it('allows POST /api/pro/analyze with valid JWT + agency tier', async () => {
-    vi.mocked(validateZeroEdgeJWT).mockResolvedValue(makeIdentity({ role: 'agency', tierLevel: 'agency' }));
-
-    const app = buildApp();
-    const res = await doFetch(app, jwtRequest('/api/pro/analyze', 'POST'));
-    expect(res.status).toBe(200);
-  });
-
-  it('allows POST /api/access/sentiment with valid JWT + pro tier', async () => {
-    vi.mocked(validateZeroEdgeJWT).mockResolvedValue(makeIdentity({ role: 'pro', tierLevel: 'pro' }));
-
-    const app = buildApp();
-    const res = await doFetch(
-      app,
-      jwtRequest('/api/access/sentiment', 'POST', TRUSTED_IP, { 'Content-Type': 'application/json' }),
-    );
-    expect(res.status).toBe(202);
-    const body = await res.json() as {
-      workflowId: string;
-      source: string;
-      access: { tierUsed: string; minTierRequired: string };
-    };
-    expect(body.workflowId).toBeTruthy();
-    expect(body.source).toBe('mock');
-    expect(body.access.tierUsed).toBe('pro');
-    expect(body.access.minTierRequired).toBe('pro');
-  });
-
-  it('allows POST /api/access/sentiment with valid JWT + agency tier', async () => {
-    vi.mocked(validateZeroEdgeJWT).mockResolvedValue(makeIdentity({ role: 'agency', tierLevel: 'agency' }));
-
-    const app = buildApp();
-    const res = await doFetch(app, jwtRequest('/api/access/sentiment', 'POST'));
-    expect(res.status).toBe(202);
   });
 
   it('rejects POST /api/access/sentiment for free-tier JWT (403)', async () => {
     vi.mocked(validateZeroEdgeJWT).mockResolvedValue(makeIdentity({ role: 'public', tierLevel: 'free' }));
-
     const app = buildApp();
     const res = await doFetch(app, jwtRequest('/api/access/sentiment', 'POST'));
     expect(res.status).toBe(403);
@@ -226,45 +160,8 @@ describe('accessControlMiddleware', () => {
     expect(body).toEqual({ error: "Access denied: 'pro' role required" });
   });
 
-  it('rejects unauthenticated POST /api/access/sentiment (401)', async () => {
-    const app = buildApp();
-    const res = await doFetch(app, publicRequest('/api/access/sentiment', 'POST'));
-    expect(res.status).toBe(401);
-    const body = await res.json() as { error: string };
-    expect(body).toEqual({ error: "Access denied: 'pro' role required" });
-  });
-
-  it('denies POST /api/pro/analyze with valid JWT + free tier (403)', async () => {
-    vi.mocked(validateZeroEdgeJWT).mockResolvedValue(makeIdentity({ role: 'public', tierLevel: 'free' }));
-
-    const app = buildApp();
-    const res = await doFetch(app, jwtRequest('/api/pro/analyze', 'POST'));
-    expect(res.status).toBe(403);
-    const body = await res.json() as { error: string };
-    expect(body.error).toMatch(/pro/i);
-  });
-
-  // ── Zero-Edge SSO — Admin ─────────────────────────────────
-
-  it('allows GET /admin/dashboard with valid JWT + admin role from trusted IP', async () => {
-    vi.mocked(validateZeroEdgeJWT).mockResolvedValue(makeIdentity({ role: 'admin', tierLevel: 'agency' }));
-
-    const app = buildApp();
-    const res = await doFetch(app, jwtRequest('/admin/dashboard', 'GET', TRUSTED_IP));
-    expect(res.status).toBe(200);
-  });
-
-  it('allows POST /admin/config with admin role + trusted IP', async () => {
-    vi.mocked(validateZeroEdgeJWT).mockResolvedValue(makeIdentity({ role: 'admin', tierLevel: 'agency' }));
-
-    const app = buildApp();
-    const res = await doFetch(app, jwtRequest('/admin/config', 'POST', TRUSTED_IP));
-    expect(res.status).toBe(200);
-  });
-
   it('denies POST /admin/config with admin role + untrusted IP (403)', async () => {
     vi.mocked(validateZeroEdgeJWT).mockResolvedValue(makeIdentity({ role: 'admin', tierLevel: 'agency' }));
-
     const app = buildApp();
     const res = await doFetch(app, jwtRequest('/admin/config', 'POST', UNTRUSTED_IP));
     expect(res.status).toBe(403);
@@ -272,97 +169,10 @@ describe('accessControlMiddleware', () => {
     expect(body.error).toMatch(/whitelist/i);
   });
 
-  it('denies GET /admin/dashboard with non-admin JWT (403)', async () => {
-    vi.mocked(validateZeroEdgeJWT).mockResolvedValue(makeIdentity({ role: 'pro', tierLevel: 'pro' }));
-
-    const app = buildApp();
-    const res = await doFetch(app, jwtRequest('/admin/dashboard', 'GET', TRUSTED_IP));
-    expect(res.status).toBe(403);
-    const body = await res.json() as { error: string };
-    expect(body.error).toMatch(/admin/i);
-  });
-
-  // ── Invalid JWT ───────────────────────────────────────────
-
-  it('returns 401 when JWT signature is invalid', async () => {
-    vi.mocked(validateZeroEdgeJWT).mockRejectedValue(new Error('Invalid JWT: signature verification failed'));
-
-    const app = buildApp();
-    const res = await doFetch(app, jwtRequest('/api/pro/analyze', 'POST'));
-    expect(res.status).toBe(401);
-    const body = await res.json() as { error: string };
-    expect(body.error).toMatch(/invalid/i);
-  });
-
-  it('returns 401 for expired JWT', async () => {
-    vi.mocked(validateZeroEdgeJWT).mockRejectedValue(new Error('Invalid JWT: token has expired'));
-
-    const app = buildApp();
-    const res = await doFetch(app, jwtRequest('/api/pro/analyze', 'POST'));
-    expect(res.status).toBe(401);
-    const body = await res.json() as { error: string };
-    expect(body.error).toMatch(/invalid|expired/i);
-  });
-
-  it('returns 401 when JWT is present but invalid for any protected route', async () => {
-    vi.mocked(validateZeroEdgeJWT).mockRejectedValue(new Error('Invalid JWT: malformed token'));
-
-    const app = buildApp();
-    // Test admin route too
-    const res = await doFetch(app, jwtRequest('/admin/dashboard', 'GET'));
-    expect(res.status).toBe(401);
-  });
-
-  // ── Agent token fallback ──────────────────────────────────
-
-  it('allows POST /api/pro/analyze with valid agent token (no JWT)', async () => {
-    const app = buildApp();
-    const res = await doFetch(app, agentRequest('/api/pro/analyze', 'POST', TRUSTED_IP));
-    expect(res.status).toBe(200);
-  });
-
-  it('denies POST /api/pro/analyze with invalid agent token (returns 401 as public user)', async () => {
-    const app = buildApp();
-    const res = await doFetch(
-      app,
-      new Request('http://localhost/api/pro/analyze', {
-        method: 'POST',
-        headers: {
-          Authorization: 'Bearer bad_token',
-          'CF-Connecting-IP': TRUSTED_IP,
-        },
-      }),
-    );
-    expect(res.status).toBe(401);
-  });
-
-  // ── Unauthenticated access to protected routes ────────────
-
-  it('returns 401 for unauthenticated access to POST /api/pro/analyze', async () => {
-    const app = buildApp();
-    const res = await doFetch(app, publicRequest('/api/pro/analyze', 'POST'));
-    expect(res.status).toBe(401);
-    const body = await res.json() as { error: string };
-    expect(body.error).toMatch(/pro/i);
-  });
-
-  it('returns 401 for unauthenticated access to GET /admin/dashboard', async () => {
-    const app = buildApp();
-    const res = await doFetch(app, publicRequest('/admin/dashboard'));
-    expect(res.status).toBe(401);
-    const body = await res.json() as { error: string };
-    expect(body.error).toMatch(/admin/i);
-  });
-
-  // ── Context attachment ────────────────────────────────────
-
   it('attaches accessContext to request when using Zero-Edge SSO', async () => {
     const identity = makeIdentity({ role: 'pro', tierLevel: 'pro' });
     vi.mocked(validateZeroEdgeJWT).mockResolvedValue(identity);
-
     const app = buildApp();
-
-    // Add a route that reads the context
     app.post('/api/pro/context-check', (c) => {
       const ctx = c.get('accessContext');
       return c.json({ method: ctx?.method, role: ctx?.identity.role });

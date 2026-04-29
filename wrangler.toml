@@ -1,4 +1,4 @@
-name = "banproof-me"
+name = "banproof.me"
 main = "src/index.ts"
 compatibility_date = "2025-09-27"
 compatibility_flags = ["nodejs_compat"]
@@ -15,11 +15,6 @@ binding = "ASSETS"
 
 [vars]
 ENV = "production"
-
-# Secrets (wrangler secret put <n> --name banproof-me):
-#   POA_TOKEN
-#   AUDIT_TOKEN
-#   OPENAI_API_KEY
 
 [[kv_namespaces]]
 binding = "GS_CONFIG"
@@ -50,6 +45,9 @@ class_name = "ContentProcessingWorkflow"
 binding = "GS_EVENTS"
 queue = "goldshore-jobs"
 
+[[routes]]
+pattern = "preview.banproof.me/*"
+zone_name = "banproof.me"
 [[queues.consumers]]
 queue = "goldshore-jobs"
 max_batch_size = 10
@@ -69,13 +67,10 @@ service = "banproof-email-router"
 binding = "ANALYTICS"
 dataset = "banproof_events"
 
-# Routes — banproof.me only (was wrongly pointing to rmarston.com)
-# NOTE: These are marked as forbidden for Worker Routes in ops/cloudflare-required.json
-# as they should be served via Pages/Assets instead.
-# [[routes]]
-# pattern = "banproof.me/*"
-# zone_name = "banproof.me"
+[[routes]]
+pattern = "banproof.me/*"
+zone_name = "banproof.me"
 
-# [[routes]]
-# pattern = "www.banproof.me/*"
-# zone_name = "banproof.me"
+[[routes]]
+pattern = "www.banproof.me/*"
+zone_name = "banproof.me"
