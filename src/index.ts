@@ -213,11 +213,17 @@ export default {
             if (!env.EMAIL_ROUTER) {
               throw new Error('EMAIL_ROUTER binding is missing');
             }
-            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+            const emailResponse = await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload),
             });
+            if (!emailResponse.ok) {
+              const responseBody = await emailResponse.text();
+              throw new Error(
+                `EMAIL_ROUTER request failed with ${emailResponse.status} ${emailResponse.statusText}${responseBody ? `: ${responseBody}` : ''}`,
+              );
+            }
             break;
           default:
             console.log(`[Queue] Unhandled job type: ${type}`);
