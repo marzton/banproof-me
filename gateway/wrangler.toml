@@ -1,4 +1,4 @@
-name                = "banproof-core"
+name                = "banproof.me"
 main                = "src/index.ts"
 compatibility_date  = "2026-04-01"
 compatibility_flags = ["nodejs_compat"]
@@ -14,6 +14,10 @@ zone_name = "banproof.me"
 
 [[routes]]
 pattern   = "admin.banproof.me/*"
+zone_name = "banproof.me"
+
+[[routes]]
+pattern   = "preview.banproof.me/*"
 zone_name = "banproof.me"
 
 [[routes]]
@@ -70,6 +74,15 @@ service = "saas-admin-template-customer-workflow"
 [[services]]
 binding = "EMAIL_ROUTER"
 service = "banproof-email-router"
+
+# ── Analytics Engine ──────────────────────────────────────────
+[[analytics_engines]]
+binding = "ANALYTICS"
+dataset = "banproof_events"
+
+# ── Email Routing ─────────────────────────────────────────────
+[[send_email]]
+name = "SEND_EMAIL"
 
 # ── Queue Producer (binding: QUEUE) ───────────────────────────
 [[queues.producers]]

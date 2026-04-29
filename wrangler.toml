@@ -1,4 +1,4 @@
-name = "banproof-me"
+name = "banproof.me"
 main = "src/index.ts"
 compatibility_date = "2025-09-27"
 compatibility_flags = ["nodejs_compat"]
@@ -47,4 +47,30 @@ queue = "goldshore-jobs"
 
 [[routes]]
 pattern = "preview.banproof.me/*"
+zone_name = "banproof.me"
+[[queues.consumers]]
+queue = "goldshore-jobs"
+max_batch_size = 10
+max_batch_timeout = 30
+
+# Email routing
+[[send_email]]
+name = "SEND_EMAIL"
+
+# Service bindings
+[[services]]
+binding = "EMAIL_ROUTER"
+service = "banproof-email-router"
+
+# Analytics Engine
+[[analytics_engines]]
+binding = "ANALYTICS"
+dataset = "banproof_events"
+
+[[routes]]
+pattern = "banproof.me/*"
+zone_name = "banproof.me"
+
+[[routes]]
+pattern = "www.banproof.me/*"
 zone_name = "banproof.me"
