@@ -43,3 +43,11 @@ export type Variables = {
   // userId is set by tollBooth but seemingly unused downstream as a Hono variable
   userId?:        string;
 };
+
+export type EmailPayload = {
+  to: string;
+  subject: string;
+  body: string;
+  correlationId?: string;
+  triggeredBy?: string;
+};
