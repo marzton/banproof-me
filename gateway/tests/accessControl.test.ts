@@ -33,9 +33,9 @@ const BASE_ENV = {
 };
 
 function buildApp() {
-  const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+  const app = new Hono<{ Variables: { accessContext: AccessContext } }>();
 
-  app.use('*', accessControlMiddleware);
+  app.use('*', accessControlMiddleware as any);
 
   // Protected routes
   app.post('/api/pro/analyze', (c) => c.json({ ok: true }));
@@ -177,10 +177,25 @@ describe('accessControlMiddleware', () => {
       const ctx = c.get('accessContext');
       return c.json({ method: ctx?.method, role: ctx?.identity.role });
     });
-    const res = await doFetch(app, jwtRequest('/api/pro/context-check', 'POST'));
+
+    const res = await doFetch(app as any, jwtRequest('/api/pro/context-check', 'POST'));
     expect(res.status).toBe(200);
     const body = await res.json() as { method: string; role: string };
     expect(body.method).toBe('zero-edge-sso');
     expect(body.role).toBe('pro');
+  });
+
+  it('attaches accessContext with method agent-token when using Bearer auth', async () => {
+    const app = buildApp();
+
+    app.post('/api/pro/context-check', (c) => {
+      const ctx = c.get('accessContext');
+      return c.json({ method: ctx?.method });
+    });
+
+    const res = await doFetch(app as any, agentRequest('/api/pro/context-check', 'POST', TRUSTED_IP));
+    expect(res.status).toBe(200);
+    const body = await res.json() as { method: string };
+    expect(body.method).toBe('agent-token');
   });
 });
