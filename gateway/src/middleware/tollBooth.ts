@@ -1,7 +1,11 @@
 import { MiddlewareHandler } from 'hono';
 import { validateProofOfAgency } from '../validators/proofOfAgency.js';
+import type { Bindings, Variables } from '../types/env.js';
 
-export const tollBoothMiddleware: MiddlewareHandler = async (c, next) => {
+export const tollBoothMiddleware: MiddlewareHandler<{
+  Bindings: Bindings;
+  Variables: Variables;
+}> = async (c, next) => {
   console.log(`[Toll Booth] Intercepted ${c.req.method} request to ${c.req.url}`);
   
   const authHeader = c.req.header('Authorization');
