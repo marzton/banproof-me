@@ -225,11 +225,15 @@ const queueHandlers: Record<string, QueueHandler> = {
     if (!env.EMAIL_ROUTER) {
       throw new Error('EMAIL_ROUTER binding is missing');
     }
-    await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+    const response = await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
+
+    if (!response.ok) {
+      throw new Error(`EMAIL_ROUTER send failed with status ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`);
+    }
   },
 
   sync_user: async (_payload, _env) => {
