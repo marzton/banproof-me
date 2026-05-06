@@ -1,0 +1,65 @@
+// banproof-me — KEEP + add Workflow for content/media/AI sentiment processing
+{
+  "name": "banproof-me",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-03-07",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "ENV": "production"
+  },
+  // Secrets
+  // POA_TOKEN
+  // AUDIT_TOKEN
+  // OPENAI_API_KEY  (for AI processing steps)
+  "workflows": [
+    {
+      "name": "content-processing-workflow",
+      "binding": "CONTENT_WORKFLOW",
+      "class_name": "ContentProcessingWorkflow"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "GS_CONFIG",
+      "id": "5f13370575784c9dacff522121104cb3"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "PLATFORM_DB",
+      "database_name": "gs_platform_db",
+      "database_id": "9703574e-adb7-481e-8d98-96f8ce5f8a90"
+    },
+    {
+      "binding": "AUDIT_DB",
+      "database_name": "gs_audit_db",
+      "database_id": "1ae71d76-188f-481b-91d9-db2d39013f68"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_STORE",
+      "bucket_name": "gs-assets"
+    },
+    {
+      "binding": "USER_UPLOADS",
+      "bucket_name": "user-uploads"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "GS_EVENTS",
+        "queue": "gs-events"
+      }
+    ]
+  },
+  "routes": [
+    { "pattern": "banproof.me/*", "zone_name": "banproof.me" },
+    { "pattern": "www.banproof.me/*", "zone_name": "banproof.me" }
+  ]
+}
