@@ -18,16 +18,21 @@ import adminRoutes     from './routes/admin.js';
 import type { Bindings, Variables, QueueJobMessage } from './types/env.js';
 import { SentimentWorkflow } from './workflows/sentimentWorkflow.js';
 import adminEmailRoutes from './routes/adminEmail.js';
+import { failSafeMiddleware } from './middleware/failSafe.js';
+
+
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // ── CORS middleware ───────────────────────────────────────────
+app.use('*', failSafeMiddleware);
+
 app.use(
   '/api/*',
   cors({
     origin: (origin, c) => {
       const allowList = c.env.CORS_ORIGINS
-        ? c.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+        ? c.env.CORS_ORIGINS.split(',').map((o: string) => o.trim())
         : ['https://banproof.me', 'http://localhost:5500', 'http://localhost:8788'];
       return allowList.includes(origin) ? origin : null;
     },
@@ -237,10 +242,11 @@ export default {
   // ── Queue consumer: goldshore-jobs ─────────────────────────
   async queue(
     batch: MessageBatch<QueueJobMessage>,
-    env: Bindings,
+    _env: Bindings,
   ): Promise<void> {
     for (const message of batch.messages) {
       try {
+        // TODO: dispatch message.body.type to the appropriate handler.
         const { type, payload } = message.body;
         console.log(`[Queue] Processing job: ${type}`, payload);
 
@@ -288,8 +294,7 @@ export default {
         }
 
         message.ack();
-      } catch (err) {
-        console.error('[Queue] Job processing failed:', err);
+      } catch {
         message.retry();
       }
     }
