@@ -136,6 +136,74 @@ function req(method: string, path: string, body?: unknown, headers: Record<strin
 
 // ── Tests ─────────────────────────────────────────────────────
 
+describe('Console PII Logging Security Tests', () => {
+  let logSpy: any;
+
+  beforeEach(() => {
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  it('does not log email or ip during signup', async () => {
+    const app = buildApp();
+    const email = 'PII_LOG_TEST_SIGNUP@test.com';
+    const ip = '123.123.123.123';
+
+    await app.fetch(req('POST', '/auth/signup',
+      { email, password: 'securePass1' },
+      { 'CF-Connecting-IP': ip }
+    ));
+
+    logSpy.mock.calls.forEach((call: any[]) => {
+      const message = call.join(' ');
+      expect(message).not.toContain(email);
+      expect(message).not.toContain(ip);
+    });
+  });
+
+  it('does not log email or ip during signin', async () => {
+    const db = makeD1();
+    const app = buildApp(db);
+    const email = 'PII_LOG_TEST_SIGNIN@test.com';
+    const ip = '124.124.124.124';
+
+    await app.fetch(req('POST', '/auth/signup', { email, password: 'goodPass99' }));
+    logSpy.mockClear();
+
+    await app.fetch(req('POST', '/auth/signin',
+      { email, password: 'goodPass99' },
+      { 'CF-Connecting-IP': ip }
+    ));
+
+    logSpy.mock.calls.forEach((call: any[]) => {
+      const message = call.join(' ');
+      expect(message).not.toContain(email);
+      expect(message).not.toContain(ip);
+    });
+  });
+
+  it('does not log ip during logout', async () => {
+    const db = makeD1();
+    const app = buildApp(db);
+    const email = 'PII_LOG_TEST_LOGOUT@test.com';
+    const ip = '125.125.125.125';
+
+    await app.fetch(req('POST', '/auth/signup', { email, password: 'securePass1' }));
+    const signin = await app.fetch(req('POST', '/auth/signin', { email, password: 'securePass1' }));
+    const { accessToken } = await signin.json() as any;
+    logSpy.mockClear();
+
+    await app.fetch(req('POST', '/auth/logout', undefined, {
+      Authorization: `Bearer ${accessToken}`,
+      'CF-Connecting-IP': ip,
+    }));
+
+    logSpy.mock.calls.forEach((call: any[]) => {
+      const message = call.join(' ');
+      expect(message).not.toContain(ip);
+    });
+  });
+});
+
 describe('POST /auth/signup', () => {
   it('creates a user and returns userId', async () => {
     const app = buildApp();
@@ -175,6 +243,22 @@ describe('POST /auth/signup', () => {
     expect(res.status).toBe(400);
     const body = await res.json() as any;
     expect(body.error).toBe('Password must be at least 8 characters.');
+  });
+
+  it('returns 400 when password is exactly 7 characters (edge case)', async () => {
+    const app = buildApp();
+    const res  = await app.fetch(req('POST', '/auth/signup', { email: 'edge@test.com', password: '1234567' }));
+    expect(res.status).toBe(400);
+    const body = await res.json() as any;
+    expect(body.error).toBe('Password must be at least 8 characters.');
+  });
+
+  it('accepts a password that is exactly 8 characters (boundary case)', async () => {
+    const app = buildApp();
+    const res  = await app.fetch(req('POST', '/auth/signup', { email: 'boundary@test.com', password: '12345678' }));
+    expect(res.status).toBe(201);
+    const body = await res.json() as any;
+    expect(body.userId).toBeTruthy();
   });
 
   it('returns 409 for duplicate email', async () => {
