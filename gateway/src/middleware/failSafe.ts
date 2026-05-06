@@ -9,8 +9,8 @@ export const failSafeMiddleware = async (c: Context, next: Next) => {
     if (path.includes('stripe') || path.includes('billing')) {
       return c.json({ ok: false, error: 'Internal Server Error - Security Abort' }, 500);
     }
-    // Return a generic 5xx response for all other unhandled failures
-    console.error('Unhandled error on public route:', err);
-    return c.json({ ok: false, error: 'Internal Server Error' }, 500);
+    // Fail open (graceful degradation) for public routes
+    console.error('Graceful degradation on public route:', err);
+    return c.json({ ok: false, warning: 'Service degraded but running.' }, 200);
   }
 };
