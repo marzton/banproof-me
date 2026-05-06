@@ -77,7 +77,7 @@ database_id = "1ae71d76-188f-481b-91d9-db2d39013f68"
 [[d1_databases]]
 binding = "SIGNALS_DB"
 database_name = "gs_signals_db"
-database_id = "f77de112-d201-9e54-56a3-198a8bb50bd2" # Mock ID
+database_id = "<REAL_GS_SIGNALS_DB_DATABASE_ID>"
 
 [[kv_namespaces]]
 binding = "GS_CONFIG"
