@@ -1,48 +1,9 @@
-name = "banproof-me"
-main = "src/index.ts"
-compatibility_date = "2025-09-27"
-compatibility_flags = ["nodejs_compat"]
+import re
 
-[observability]
-enabled = true
-head_sampling_rate = 1
+with open("wrangler.toml", "r") as f:
+    content = f.read()
 
-# Static assets for the public site
-[assets]
-directory = "./public"
-not_found_handling = "single-page-application"
-binding = "ASSETS"
-
-[vars]
-ENV = "production"
-
-# Secrets (wrangler secret put <n> --name banproof-me):
-#   POA_TOKEN
-#   AUDIT_TOKEN
-#   OPENAI_API_KEY
-
-[[workflows]]
-name = "content-processing-workflow"
-binding = "CONTENT_WORKFLOW"
-class_name = "ContentProcessingWorkflow"
-
-# Queues — produces jobs for gs-agent
-[[queues.producers]]
-binding = "GS_EVENTS"
-queue = "goldshore-jobs"
-
-# Routes — banproof.me only (was wrongly pointing to rmarston.com)
-[[routes]]
-pattern = "banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern = "www.banproof.me/*"
-zone_name = "banproof.me"
-
-
-
-
+bindings = """
 [[d1_databases]]
 binding = "PLATFORM_DB"
 database_name = "gs_platform_db"
@@ -85,3 +46,15 @@ service = "banproof-me"
 [[services]]
 binding = "SIGNALS"
 service = "gs-signals-prod"
+"""
+
+# replace the existing ones so there are no duplicates
+content = re.sub(r'\[\[d1_databases\]\][\s\S]*?(?=\[\[|\Z)', '', content)
+content = re.sub(r'\[\[kv_namespaces\]\][\s\S]*?(?=\[\[|\Z)', '', content)
+content = re.sub(r'\[\[r2_buckets\]\][\s\S]*?(?=\[\[|\Z)', '', content)
+content = re.sub(r'\[\[services\]\][\s\S]*?(?=\[\[|\Z)', '', content)
+
+content += "\n" + bindings
+
+with open("wrangler.toml", "w") as f:
+    f.write(content)
