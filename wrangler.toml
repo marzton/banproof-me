@@ -1,76 +1,118 @@
-name = "banproof.me"
-main = "src/index.ts"
-compatibility_date = "2025-09-27"
-compatibility_flags = ["nodejs_compat"]
+// wrangler.jsonc — banproof-me worker configuration
+{
+  "name": "banproof-me",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-27",
+  "compatibility_flags": ["nodejs_compat"],
 
-[observability]
-enabled = true
-head_sampling_rate = 1
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
 
-# Static assets for the public site
-[assets]
-directory = "./public"
-not_found_handling = "single-page-application"
-binding = "ASSETS"
+  // Static assets — SPA fallback for public site
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS"
+  },
 
-[vars]
-ENV = "production"
+  "vars": {
+    "ENV": "production"
+  },
 
-[[kv_namespaces]]
-binding = "GS_CONFIG"
-id = "5f13370575784c9dacff522121104cb3"
+  // KV
+  "kv_namespaces": [
+    {
+      "binding": "GS_CONFIG",
+      "id": "5f13370575784c9dacff522121104cb3"
+    }
+  ],
 
-[[d1_databases]]
-binding = "PLATFORM_DB"
-database_name = "gs_platform_db"
-database_id = "9703574e-adb7-481e-8d98-96f8ce5f8a90"
+  // D1 Databases
+  "d1_databases": [
+    {
+      "binding": "PLATFORM_DB",
+      "database_name": "gs_platform_db",
+      "database_id": "9703574e-adb7-481e-8d98-96f8ce5f8a90"
+    },
+    {
+      "binding": "AUDIT_DB",
+      "database_name": "gs_audit_db",
+      "database_id": "1ae71d76-188f-481b-91d9-db2d39013f68"
+    }
+  ],
 
-[[d1_databases]]
-binding = "AUDIT_DB"
-database_name = "gs_audit_db"
-database_id = "1ae71d76-188f-481b-91d9-db2d39013f68"
+  // R2
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_STORE",
+      "bucket_name": "gs-assets"
+    }
+  ],
 
-[[r2_buckets]]
-binding = "MEDIA_STORE"
-bucket_name = "gs-assets"
+  // Workflow — AI/sentiment content processing pipeline
+  "workflows": [
+    {
+      "name": "content-processing-workflow",
+      "binding": "CONTENT_WORKFLOW",
+      "class_name": "ContentProcessingWorkflow"
+    }
+  ],
 
-# Workflow for content/AI/sentiment processing
-[[workflows]]
-name = "content-processing-workflow"
-binding = "CONTENT_WORKFLOW"
-class_name = "ContentProcessingWorkflow"
+  // Queues
+  "queues": {
+    "producers": [
+      {
+        "binding": "GS_EVENTS",
+        "queue": "goldshore-jobs"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "goldshore-jobs",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30
+      }
+    ]
+  },
 
-# Queues — produces jobs for gs-agent
-[[queues.producers]]
-binding = "GS_EVENTS"
-queue = "goldshore-jobs"
+  // Email
+  "send_email": [
+    {
+      "name": "SEND_EMAIL"
+    }
+  ],
 
-[[routes]]
-pattern = "preview.banproof.me/*"
-zone_name = "banproof.me"
-[[queues.consumers]]
-queue = "goldshore-jobs"
-max_batch_size = 10
-max_batch_timeout = 30
+  // Service bindings
+  "services": [
+    {
+      "binding": "EMAIL_ROUTER",
+      "service": "banproof-email-router"
+    }
+  ],
 
-# Email routing
-[[send_email]]
-name = "SEND_EMAIL"
+  // Analytics Engine — was "analytics_engines" (invalid), now correct key
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS",
+      "dataset": "banproof_events"
+    }
+  ],
 
-# Service bindings
-[[services]]
-binding = "EMAIL_ROUTER"
-service = "banproof-email-router"
-
-# Analytics Engine
-[[analytics_engines]]
-binding = "ANALYTICS"
-dataset = "banproof_events"
-
-[[routes]]
-pattern = "banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern = "www.banproof.me/*"
-zone_name = "banproof.me"
+  // Routes
+  "routes": [
+    {
+      "pattern": "banproof.me/*",
+      "zone_name": "banproof.me"
+    },
+    {
+      "pattern": "www.banproof.me/*",
+      "zone_name": "banproof.me"
+    },
+    {
+      "pattern": "preview.banproof.me/*",
+      "zone_name": "banproof.me"
+    }
+  ]
+}
