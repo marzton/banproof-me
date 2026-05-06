@@ -59,6 +59,16 @@ service = "banproof-email-router"
 binding = "ANALYTICS"
 dataset = "banproof_events"
 
+# Routes — banproof.me only (was wrongly pointing to rmarston.com)
+# NOTE: These are marked as forbidden for Worker Routes in ops/cloudflare-required.json
+# as they should be served via Pages/Assets instead.
+# [[routes]]
+# pattern = "banproof.me/*"
+# zone_name = "banproof.me"
+
+# [[routes]]
+# pattern = "www.banproof.me/*"
+# zone_name = "banproof.me"
 [[routes]]
 pattern = "banproof.me/*"
 zone_name = "banproof.me"
