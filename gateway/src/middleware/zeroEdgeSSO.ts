@@ -60,7 +60,6 @@ interface CfAccessJWTPayload {
   };
   /** Alternative namespace for custom claims */
   'com.banproof'?: {
-    user_id?: string;
     role?: string;
     tier_level?: string;
   };

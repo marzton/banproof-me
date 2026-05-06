@@ -10,7 +10,6 @@
 
 import type { MiddlewareHandler } from 'hono';
 import type { AccessContext, UserRole, TierLevel } from '../types/access.js';
-import type { Bindings, Variables } from '../types/env.js';
 import { validateZeroEdgeJWT, extractClaims, enforceRBAC } from './zeroEdgeSSO.js';
 import { validateProofOfAgency } from '../validators/proofOfAgency.js';
 
@@ -33,12 +32,17 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
 // Routes that are always public — no auth needed
 const PUBLIC_ROUTES = new Set(['/api/health']);
 
+// Default trusted IPs for admin routes
+// - In development (CF_ACCESS_AUDIENCE === 'development'): localhost only.
+// - In all other environments: fail closed (no default trusted IPs).
+const DEFAULT_TRUSTED_ADMIN_IPS =
+  process.env.CF_ACCESS_AUDIENCE === 'development'
+    ? ['127.0.0.1', '::1']
+    : [];
+
 // ── Middleware ────────────────────────────────────────────────
 
-export const accessControlMiddleware: MiddlewareHandler<{
-  Bindings: Bindings;
-  Variables: Variables;
-}> = async (c, next) => {
+export const accessControlMiddleware: MiddlewareHandler = async (c, next) => {
   const url = new URL(c.req.url);
   const path = url.pathname;
   const method = c.req.method;
@@ -72,8 +76,9 @@ export const accessControlMiddleware: MiddlewareHandler<{
   const jwtToken = c.req.header('Cf-Access-Jwt-Assertion');
 
   if (jwtToken) {
-    const audience = c.env.CF_ACCESS_AUDIENCE ?? '';
-    const publicKey = c.env.CF_ZERO_EDGE_PUBLIC_KEY ?? '';
+    const env = c.env as Record<string, string | undefined>;
+    const audience = env.CF_ACCESS_AUDIENCE ?? '';
+    const publicKey = env.CF_ZERO_EDGE_PUBLIC_KEY ?? '';
 
     try {
       const identity = await validateZeroEdgeJWT(jwtToken, audience, publicKey);

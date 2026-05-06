@@ -78,7 +78,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
           targetTier,
           paymentEvent: raw.paymentEvent as Required<Pick<PaymentEventMetadata, 'eventId' | 'provider'>> & PaymentEventMetadata,
           notify: raw.notify ?? true,
-        };
+        } satisfies ValidatedPayload;
       });
 
       const duplicate = await step.do('idempotency-check', async () => {
