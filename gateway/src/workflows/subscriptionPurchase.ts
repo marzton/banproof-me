@@ -11,7 +11,7 @@ type PaymentEventMetadata = {
   currentPeriodEnd?: string;
   autoRenew?: boolean;
   processedAt?: string;
-  [key: string]: string | number | boolean | null | undefined;
+  [key: string]: unknown;
 };
 
 type Env = {
@@ -29,7 +29,7 @@ export type SubscriptionPurchaseParams = {
 type ValidatedPayload = {
   userId: string;
   targetTier: PlanTier;
-  paymentEvent: PaymentEventMetadata;
+  paymentEvent: Required<Pick<PaymentEventMetadata, 'eventId' | 'provider'>> & PaymentEventMetadata;
   notify: boolean;
 };
 
@@ -54,7 +54,7 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
     const startedAt = new Date().toISOString();
 
     try {
-      const payload = await step.do('validate-input', async (): Promise<ValidatedPayload> => {
+      const payload = await step.do('validate-input', async (): Promise<any> => {
         const raw = event.payload;
         const targetTier = raw?.targetTier;
         if (!raw?.userId || typeof raw.userId !== 'string') {
@@ -76,9 +76,9 @@ export class SubscriptionPurchaseWorkflow extends WorkflowEntrypoint<Env, Subscr
         return {
           userId: raw.userId,
           targetTier,
-          paymentEvent: raw.paymentEvent as PaymentEventMetadata,
+          paymentEvent: raw.paymentEvent as Required<Pick<PaymentEventMetadata, 'eventId' | 'provider'>> & PaymentEventMetadata,
           notify: raw.notify ?? true,
-        };
+        } satisfies ValidatedPayload;
       });
 
       const duplicate = await step.do('idempotency-check', async () => {

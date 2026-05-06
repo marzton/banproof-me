@@ -22,35 +22,11 @@ USE_MOCK    = "true"
 #   DISCORD_WEBHOOK → https://discord.com → Server Settings → Integrations → Webhooks
 
 [[routes]]
-pattern   = "api.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "admin.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "preview.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
 pattern   = "banproof.me/api/*"
 zone_name = "banproof.me"
 
 [[routes]]
 pattern   = "banproof.me/admin/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "api.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "admin.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "preview.banproof.me/*"
 zone_name = "banproof.me"
 
 [[routes]]
@@ -262,3 +238,38 @@ queue   = "goldshore-jobs"
 queue             = "goldshore-jobs"
 max_batch_size    = 10
 max_batch_timeout = 30
+
+[[queues.producers]]
+binding = "MAIL_QUEUE"
+queue = "gs-mail-jobs"
+[[services]]
+binding = "SECURITY"
+service = "banproof-me"
+
+[[services]]
+binding = "SIGNALS"
+service = "gs-signals-prod"
+
+[[queues.producers]]
+binding = "MAIL_QUEUE"
+queue = "gs-mail-jobs"
+
+[[services]]
+binding = "SECURITY"
+service = "banproof-me"
+
+[[services]]
+binding = "SIGNALS"
+service = "gs-signals-prod"
+
+[[queues.producers]]
+binding = "MAIL_QUEUE"
+queue = "gs-mail-jobs"
+
+[[services]]
+binding = "SECURITY"
+service = "banproof-me"
+
+[[services]]
+binding = "SIGNALS"
+service = "gs-signals-prod"

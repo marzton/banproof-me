@@ -87,17 +87,13 @@ function makeD1({ failTierChange = false }: { failTierChange?: boolean } = {}) {
 
 function makeStep() {
   return {
-    do: async (_name: string, _opts: any, fn?: () => Promise<unknown>) => {
-      if (typeof _opts === 'function') {
-        return _opts();
-      }
-      return fn ? fn() : undefined;
-    },
+    do: async (_name: string, fn: () => Promise<unknown>) => fn(),
   } as any;
 }
 
 function makeWorkflow(db: any) {
   const wf = new SubscriptionPurchaseWorkflow({} as any, { DB: db } as any);
+  (wf as any).env = { DB: db };
   return wf;
 }
 
