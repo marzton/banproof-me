@@ -92,8 +92,7 @@ function makeStep() {
 }
 
 function makeWorkflow(db: any) {
-  const wf = new SubscriptionPurchaseWorkflow();
-  (wf as any).env = { DB: db };
+  const wf = new SubscriptionPurchaseWorkflow({} as any, { DB: db } as any);
   return wf;
 }
 
