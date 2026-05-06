@@ -19,7 +19,7 @@ import type { Bindings, Variables, QueueJobMessage } from './types/env.js';
 import { SentimentWorkflow } from './workflows/sentimentWorkflow.js';
 import adminEmailRoutes from './routes/adminEmail.js';
 
-type QueueHandler = (payload: any, env: Bindings) => Promise<void>;
+type QueueHandler = (payload: QueueJobMessage['payload'], env: Bindings) => Promise<void>;
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
