@@ -80,22 +80,24 @@ binding = "AUDIT_DB"
 database_name = "gs_audit_db"
 database_id = "1ae71d76-188f-481b-91d9-db2d39013f68"
 
-[[d1_databases]]
-binding = "SIGNALS_DB"
-database_name = "gs_signals_db"
-database_id = "f77de112-d201-9e54-56a3-198a8bb50bd2" # Mock ID
-
 [[kv_namespaces]]
 binding = "GS_CONFIG"
 id = "5f13370575784c9dacff522121104cb3"
 
-[[kv_namespaces]]
-binding = "BANPROOF_KV"
-id = "b9824d3280c54573a24137c7e7143b33" # Mock ID
+[env.dev]
 
-[[kv_namespaces]]
+[[env.dev.d1_databases]]
+binding = "SIGNALS_DB"
+database_name = "gs_signals_db"
+database_id = "f77de112-d201-9e54-56a3-198a8bb50bd2"
+
+[[env.dev.kv_namespaces]]
+binding = "BANPROOF_KV"
+id = "b9824d3280c54573a24137c7e7143b33"
+
+[[env.dev.kv_namespaces]]
 binding = "GOLDSHORE_KV"
-id = "af8eb071fce34b5eafbdeb1badd93876" # Mock ID
+id = "af8eb071fce34b5eafbdeb1badd93876"
 
 [[r2_buckets]]
 binding = "MEDIA_STORE"
