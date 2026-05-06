@@ -22,6 +22,7 @@ import { failSafeMiddleware } from './middleware/failSafe.js';
 
 
 
+
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // ── CORS middleware ───────────────────────────────────────────
