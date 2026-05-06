@@ -2,7 +2,7 @@
 {
   "name": "banproof-me",
   "main": "src/index.ts",
-  "compatibility_date": "2025-03-07",
+  "compatibility_date": "2025-09-27",
   "compatibility_flags": ["nodejs_compat"],
 
   "observability": {
