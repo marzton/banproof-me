@@ -19,6 +19,8 @@ import type { Bindings, Variables, QueueJobMessage } from './types/env.js';
 import { SentimentWorkflow } from './workflows/sentimentWorkflow.js';
 import adminEmailRoutes from './routes/adminEmail.js';
 
+type QueueHandler = (payload: any, env: Bindings) => Promise<void>;
+
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // ── CORS middleware ───────────────────────────────────────────
@@ -196,6 +198,35 @@ app.onError((err, c) => {
 // ── Exports ───────────────────────────────────────────────────
 export { BanproofEngine, SubscriptionPurchaseWorkflow };
 
+const queueHandlers: Record<string, QueueHandler> = {
+  tier_upgraded: async (payload, env) => {
+    if (env.DISCORD_WEBHOOK) {
+      await fetch(env.DISCORD_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+        }),
+      });
+    }
+  },
+
+  send_email: async (payload, env) => {
+    if (!env.EMAIL_ROUTER) {
+      throw new Error('EMAIL_ROUTER binding is missing');
+    }
+    await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  sync_user: async (_payload, _env) => {
+    // Logic for user synchronization could go here
+  },
+};
+
 export default {
   fetch: app.fetch.bind(app),
 
@@ -237,11 +268,10 @@ export default {
   // ── Queue consumer: goldshore-jobs ─────────────────────────
   async queue(
     batch: MessageBatch<QueueJobMessage>,
-    _env: Bindings,
+    env: Bindings,
   ): Promise<void> {
     for (const message of batch.messages) {
       try {
-        // TODO: dispatch message.body.type to the appropriate handler.
         const { type, payload } = message.body;
         console.log(`[Queue] Processing job: ${type}`, payload);
 
@@ -253,39 +283,11 @@ export default {
           });
         }
 
-        switch (type) {
-          case 'tier_upgraded': {
-            if (env.DISCORD_WEBHOOK) {
-              await fetch(env.DISCORD_WEBHOOK, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
-                }),
-              });
-            }
-            break;
-          }
-
-          case 'send_email': {
-            if (!env.EMAIL_ROUTER) {
-              throw new Error('EMAIL_ROUTER binding is missing');
-            }
-            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
-            break;
-          }
-
-          case 'sync_user': {
-            // Logic for user synchronization could go here
-            break;
-          }
-
-          default:
-            console.warn(`[Queue] Unknown job type: ${type}`);
+        const handler = queueHandlers[type];
+        if (handler) {
+          await handler(payload, env);
+        } else {
+          console.warn(`[Queue] Unknown job type: ${type}`);
         }
 
         message.ack();
