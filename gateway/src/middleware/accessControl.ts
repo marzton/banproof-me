@@ -36,7 +36,9 @@ const PUBLIC_ROUTES = new Set(['/api/health']);
 // Default trusted IPs for admin routes
 // - In development (CF_ACCESS_AUDIENCE === 'development'): localhost only.
 // - In all other environments: fail closed (no default trusted IPs).
-const DEFAULT_TRUSTED_ADMIN_IPS = ['127.0.0.1', '::1'];
+function getDefaultTrustedIps(audience: string | undefined): string[] {
+  return audience === 'development' ? ['127.0.0.1', '::1'] : [];
+}
 
 // ── Middleware ────────────────────────────────────────────────
 
@@ -169,14 +171,11 @@ export const accessControlMiddleware: MiddlewareHandler<{
 
     // Check IP whitelist for admin routes that require it
     if (permission.requireTrustedIp) {
-      const env = c.env as Record<string, string | undefined>;
-      const rawIps = env.TRUSTED_ADMIN_IPS ?? (env.CF_ACCESS_AUDIENCE === 'development' ? DEFAULT_TRUSTED_ADMIN_IPS.join(',') : '');
-      const trustedIps = rawIps.split(',').map((ip) => ip.trim());
-      const defaultIps = env.CF_ACCESS_AUDIENCE === 'development' ? '127.0.0.1,::1' : '';
-      const rawIps = env.TRUSTED_ADMIN_IPS ?? defaultIps;
-      const trustedIps = rawIps.split(',').map((ip) => ip.trim()).filter(Boolean);
+      const adminIps =
+        c.env.TRUSTED_ADMIN_IPS ?? getDefaultTrustedIps(c.env.CF_ACCESS_AUDIENCE).join(',');
+      const adminTrustedIps = adminIps.split(',').map((ip: string) => ip.trim());
 
-      if (!trustedIps.includes(ipAddress)) {
+      if (!adminTrustedIps.includes(ipAddress)) {
         console.warn(
           `[Access Control] IP whitelist denied — path=${path} ip=${ipAddress}`,
         );
