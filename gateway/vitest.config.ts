@@ -1,14 +1,13 @@
 import { defineConfig } from 'vitest/config';
+import { resolve } from 'path';
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      'cloudflare:workers': '/workspace/banproof.me/gateway/tests/shims/cloudflareWorkers.ts',
-    },
-  },
   test: {
-    globals: true,
     environment: 'node',
+    alias: {
+      'cloudflare:workers': resolve(__dirname, './src/mocks/cloudflare-workers.js')
+    }
+  }
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     coverage: {
       provider: 'v8',
