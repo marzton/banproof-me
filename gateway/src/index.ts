@@ -18,12 +18,18 @@ import adminRoutes     from './routes/admin.js';
 import type { Bindings, Variables, QueueJobMessage } from './types/env.js';
 import { SentimentWorkflow } from './workflows/sentimentWorkflow.js';
 import adminEmailRoutes from './routes/adminEmail.js';
+import { failSafeMiddleware } from './middleware/failSafe.js';
+
+
+
 
 type QueueHandler = (payload: QueueJobMessage['payload'], env: Bindings) => Promise<void>;
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // ── CORS middleware ───────────────────────────────────────────
+app.use('*', failSafeMiddleware);
+
 app.use(
   '/api/*',
   cors({
