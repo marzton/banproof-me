@@ -1,0 +1,13 @@
+name = "armsway-com"
+main = "src/index.ts"
+compatibility_date = "2025-09-27"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "AUDIT_DB"
+database_name = "gs_audit_db"
+database_id = "1ae71d76-188f-481b-91d9-db2d39013f68"
+
+[[r2_buckets]]
+binding = "TELEMETRY_STORE"
+bucket_name = "gs-telemetry-storage"
