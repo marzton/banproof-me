@@ -135,7 +135,7 @@ auth.post('/signup', async (c) => {
     ).bind(id, JSON.stringify({ email, ip })),
   ]);
 
-  console.log(`[Auth] signup: ${email} (${id}) from ${ip}`);
+  console.log(`[Auth] signup: success (userId=${id})`);
 
   return c.json({ userId: id }, 201);
 });
@@ -205,7 +205,7 @@ auth.post('/signin', async (c) => {
     ).bind(user.id, JSON.stringify({ ip, userAgent })),
   ]);
 
-  console.log(`[Auth] signin: ${user.email} from ${ip}`);
+  console.log(`[Auth] signin: success (userId=${user.id})`);
 
   return c.json({
     accessToken,
@@ -300,7 +300,7 @@ auth.post('/logout', async (c) => {
     ).bind(session.user_id, JSON.stringify({ ip })),
   ]);
 
-  console.log(`[Auth] logout: userId=${session.user_id} from ${ip}`);
+  console.log(`[Auth] logout: success (userId=${session.user_id})`);
 
   return c.json({ ok: true, message: 'All sessions revoked.' });
 });
