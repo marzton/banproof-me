@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import worker from '../src/index.js';
 import type { QueueJobMessage } from '../src/types/env.js';
 import type { MessageBatch } from '@cloudflare/workers-types';
