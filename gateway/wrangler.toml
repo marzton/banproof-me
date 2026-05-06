@@ -88,7 +88,7 @@ binding = "EMAIL_ROUTER"
 service = "banproof-email-router"
 
 # ── Analytics Engine ──────────────────────────────────────────
-[[analytics_engines]]
+[[analytics_engine_datasets]]
 binding = "ANALYTICS"
 dataset = "banproof_events"
 
