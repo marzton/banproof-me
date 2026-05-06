@@ -36,7 +36,6 @@ describe('Queue Consumer', () => {
     const batch = createBatch([
       { body: { type: 'tier_upgraded', payload: { userId: 'user-1', targetTier: 'pro' } } }
     ]);
-    // Note: This might fail before refactor due to the _env/env bug in source
     await worker.queue(batch, mockEnv);
 
     expect(globalThis.fetch).toHaveBeenCalledWith(mockEnv.DISCORD_WEBHOOK, expect.objectContaining({
