@@ -49,6 +49,7 @@ export interface Env {
   POA_TOKEN: string;
   AUDIT_TOKEN: string;
   OPENAI_API_KEY: string;
+  DISCORD_WEBHOOK?: string;
 }
 
 /** Shape of messages pushed to / consumed from the goldshore-jobs queue */
