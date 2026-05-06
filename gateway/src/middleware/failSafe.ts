@@ -11,6 +11,6 @@ export const failSafeMiddleware = async (c: Context, next: Next) => {
     }
     // Fail open (graceful degradation) for public routes
     console.error('Graceful degradation on public route:', err);
-    return c.json({ ok: false, warning: 'Service degraded but running.', error: String(err) }, 200);
+    return c.json({ ok: false, warning: 'Service degraded but running.' }, 200);
   }
 };

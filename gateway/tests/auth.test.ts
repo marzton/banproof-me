@@ -245,6 +245,22 @@ describe('POST /auth/signup', () => {
     expect(body.error).toBe('Password must be at least 8 characters.');
   });
 
+  it('returns 400 when password is exactly 7 characters (edge case)', async () => {
+    const app = buildApp();
+    const res  = await app.fetch(req('POST', '/auth/signup', { email: 'edge@test.com', password: '1234567' }));
+    expect(res.status).toBe(400);
+    const body = await res.json() as any;
+    expect(body.error).toBe('Password must be at least 8 characters.');
+  });
+
+  it('accepts a password that is exactly 8 characters (boundary case)', async () => {
+    const app = buildApp();
+    const res  = await app.fetch(req('POST', '/auth/signup', { email: 'boundary@test.com', password: '12345678' }));
+    expect(res.status).toBe(201);
+    const body = await res.json() as any;
+    expect(body.userId).toBeTruthy();
+  });
+
   it('returns 409 for duplicate email', async () => {
     const db  = makeD1();
     const app = buildApp(db);
