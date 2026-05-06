@@ -22,7 +22,11 @@ export default {
 
         return new Response(JSON.stringify({ success: true, orderId }), { status: 200 });
       } catch (e) {
-        return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
+        console.error('Failed to process /api/orders request', e);
+        return new Response(JSON.stringify({ error: 'Internal server error' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
     }
     return new Response('Armsway E-Commerce API', { status: 200 });

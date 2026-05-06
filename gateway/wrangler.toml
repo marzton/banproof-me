@@ -17,6 +17,10 @@ pattern   = "admin.banproof.me/*"
 zone_name = "banproof.me"
 
 [[routes]]
+pattern   = "api.banproof.me/*"
+zone_name = "banproof.me"
+
+[[routes]]
 pattern   = "preview.banproof.me/*"
 zone_name = "banproof.me"
 
