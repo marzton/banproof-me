@@ -172,6 +172,11 @@ async function hitRateLimitApp(
 }
 
 describe('rateLimiter middleware', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-01T12:00:00Z'));
+  });
+
   it('agency tier bypasses rate limiting', async () => {
     const rig = buildRateLimitApp();
     const res = await rig.app.fetch(
@@ -187,7 +192,7 @@ describe('rateLimiter middleware', () => {
   });
 
   it('free tier allows up to 10 requests', async () => {
-    const minuteTs = Math.floor(Date.now() / 60_000);
+    const minuteTs = Math.floor(vi.getMockedSystemTime()!.getTime() / 60_000);
     const key = `ratelimit:free-user:${minuteTs}`;
     // Pre-populate KV to simulate 9 already consumed
     const rig = buildRateLimitApp({ [key]: '9' });
@@ -205,7 +210,7 @@ describe('rateLimiter middleware', () => {
   });
 
   it('free tier returns 429 on the 11th request', async () => {
-    const minuteTs = Math.floor(Date.now() / 60_000);
+    const minuteTs = Math.floor(vi.getMockedSystemTime()!.getTime() / 60_000);
     const key = `ratelimit:free-user2:${minuteTs}`;
     // Pre-populate KV to simulate 10 already consumed
     const rig = buildRateLimitApp({ [key]: '10' });
@@ -226,7 +231,7 @@ describe('rateLimiter middleware', () => {
 
   it('returns 429 body with tier and limit fields', async () => {
     // Pre-populate KV to simulate 11 already consumed
-    const minuteTs = Math.floor(Date.now() / 60_000);
+    const minuteTs = Math.floor(vi.getMockedSystemTime()!.getTime() / 60_000);
     const key = `ratelimit:limit-test:${minuteTs}`;
     const rig = buildRateLimitApp({ [key]: '10' });
     const res = await rig.app.fetch(
@@ -245,7 +250,7 @@ describe('rateLimiter middleware', () => {
   });
 
   it('pro tier sends warning header at 90% usage', async () => {
-    const minuteTs = Math.floor(Date.now() / 60_000);
+    const minuteTs = Math.floor(vi.getMockedSystemTime()!.getTime() / 60_000);
     const key = `ratelimit:pro-user:${minuteTs}`;
     const rig = buildRateLimitApp({ [key]: '89' }); // next request = 90
     const res = await rig.app.fetch(
