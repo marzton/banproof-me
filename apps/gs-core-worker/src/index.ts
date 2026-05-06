@@ -28,7 +28,8 @@ export default {
         }
         return new Response(JSON.stringify({ success: false, message: 'Not a Buy signal' }), { status: 400 });
       } catch (e) {
-        return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
+        console.error('Error processing /trigger-atc request', e);
+        return new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500 });
       }
     }
     return new Response('Not found', { status: 404 });
