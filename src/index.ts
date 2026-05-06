@@ -175,56 +175,58 @@ export default {
   },
 
   async queue(batch: MessageBatch<QueueJobMessage>, env: Env): Promise<void> {
-    for (const message of batch.messages) {
-      try {
-        const { type, payload } = message.body;
-        console.log(`[Queue] Processing job: ${type}`, payload);
+    await Promise.allSettled(
+      batch.messages.map(async (message) => {
+        try {
+          const { type, payload } = message.body;
+          console.log(`[Queue] Processing job: ${type}`, payload);
 
-        // Record event in analytics
-        if (env.ANALYTICS) {
-          env.ANALYTICS.write({
-            doubles: [1],
-            blobs: [type, JSON.stringify(payload)],
-          });
-        }
+          // Record event in analytics
+          if (env.ANALYTICS) {
+            env.ANALYTICS.write({
+              doubles: [1],
+              blobs: [type, JSON.stringify(payload)],
+            });
+          }
 
-        switch (type) {
-          case 'tier_upgraded':
-            if (env.DISCORD_WEBHOOK) {
-              await fetch(env.DISCORD_WEBHOOK, {
+          switch (type) {
+            case 'tier_upgraded':
+              if (env.DISCORD_WEBHOOK) {
+                await fetch(env.DISCORD_WEBHOOK, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+                  }),
+                });
+              }
+              break;
+
+            case 'send_email':
+              if (!env.EMAIL_ROUTER) {
+                throw new Error('EMAIL_ROUTER binding is missing');
+              }
+              await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
-                }),
+                body: JSON.stringify(payload),
               });
-            }
-            break;
+              break;
 
-          case 'send_email':
-            if (!env.EMAIL_ROUTER) {
-              throw new Error('EMAIL_ROUTER binding is missing');
-            }
-            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
-            break;
+            case 'sync_user':
+              // Logic for user synchronization could go here
+              break;
 
-          case 'sync_user':
-            // Logic for user synchronization could go here
-            break;
+            default:
+              console.warn(`[Queue] Unhandled job type: ${type}`);
+          }
 
-          default:
-            console.warn(`[Queue] Unhandled job type: ${type}`);
+          message.ack();
+        } catch (err) {
+          console.error('[Queue] Error processing message:', err);
+          message.retry();
         }
-
-        message.ack();
-      } catch (err) {
-        console.error('[Queue] Error processing message:', err);
-        message.retry();
-      }
-    }
+      })
+    );
   },
 } satisfies ExportedHandler<Env>;
