@@ -1,7 +1,13 @@
-name = "banproof-me"
+name = "banproof.me"
 main = "src/index.ts"
 compatibility_date = "2025-09-27"
 compatibility_flags = ["nodejs_compat"]
+// wrangler.jsonc — banproof-me worker configuration
+{
+  "name": "banproof-me",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-27",
+  "compatibility_flags": ["nodejs_compat"],
 
 [observability]
 enabled = true
@@ -21,25 +27,6 @@ ENV = "production"
 #   AUDIT_TOKEN
 #   OPENAI_API_KEY
 
-[[kv_namespaces]]
-binding = "GS_CONFIG"
-id = "5f13370575784c9dacff522121104cb3"
-
-[[d1_databases]]
-binding = "PLATFORM_DB"
-database_name = "gs_platform_db"
-database_id = "9703574e-adb7-481e-8d98-96f8ce5f8a90"
-
-[[d1_databases]]
-binding = "AUDIT_DB"
-database_name = "gs_audit_db"
-database_id = "1ae71d76-188f-481b-91d9-db2d39013f68"
-
-[[r2_buckets]]
-binding = "MEDIA_STORE"
-bucket_name = "gs-assets"
-
-# Workflow for content/AI/sentiment processing
 [[workflows]]
 name = "content-processing-workflow"
 binding = "CONTENT_WORKFLOW"
@@ -50,6 +37,9 @@ class_name = "ContentProcessingWorkflow"
 binding = "GS_EVENTS"
 queue = "goldshore-jobs"
 
+[[routes]]
+pattern = "preview.banproof.me/*"
+zone_name = "banproof.me"
 [[queues.consumers]]
 queue = "goldshore-jobs"
 max_batch_size = 10
@@ -70,6 +60,15 @@ binding = "ANALYTICS"
 dataset = "banproof_events"
 
 # Routes — banproof.me only (was wrongly pointing to rmarston.com)
+# NOTE: These are marked as forbidden for Worker Routes in ops/cloudflare-required.json
+# as they should be served via Pages/Assets instead.
+# [[routes]]
+# pattern = "banproof.me/*"
+# zone_name = "banproof.me"
+
+# [[routes]]
+# pattern = "www.banproof.me/*"
+# zone_name = "banproof.me"
 [[routes]]
 pattern = "banproof.me/*"
 zone_name = "banproof.me"
@@ -77,3 +76,49 @@ zone_name = "banproof.me"
 [[routes]]
 pattern = "www.banproof.me/*"
 zone_name = "banproof.me"
+
+
+
+
+[[d1_databases]]
+binding = "PLATFORM_DB"
+database_name = "gs_platform_db"
+database_id = "9703574e-adb7-481e-8d98-96f8ce5f8a90"
+
+[[d1_databases]]
+binding = "AUDIT_DB"
+database_name = "gs_audit_db"
+database_id = "1ae71d76-188f-481b-91d9-db2d39013f68"
+
+[[d1_databases]]
+binding = "SIGNALS_DB"
+database_name = "gs_signals_db"
+database_id = "f77de112-d201-9e54-56a3-198a8bb50bd2" # Mock ID
+
+[[kv_namespaces]]
+binding = "GS_CONFIG"
+id = "5f13370575784c9dacff522121104cb3"
+
+[[kv_namespaces]]
+binding = "BANPROOF_KV"
+id = "b9824d3280c54573a24137c7e7143b33" # Mock ID
+
+[[kv_namespaces]]
+binding = "GOLDSHORE_KV"
+id = "af8eb071fce34b5eafbdeb1badd93876" # Mock ID
+
+[[r2_buckets]]
+binding = "MEDIA_STORE"
+bucket_name = "gs-assets"
+
+[[r2_buckets]]
+binding = "TELEMETRY_STORE"
+bucket_name = "gs-telemetry-storage"
+
+[[services]]
+binding = "SECURITY"
+service = "banproof-me"
+
+[[services]]
+binding = "SIGNALS"
+service = "gs-signals-prod"
