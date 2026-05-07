@@ -6,8 +6,6 @@ settings:
 
 importers:
 
-  .: {}
-
   gateway:
     dependencies:
       '@goldshore/identity':
