@@ -280,9 +280,6 @@ export default {
             }
 
             case 'send_email': {
-              if (!env.EMAIL_ROUTER) {
-                throw new Error('EMAIL_ROUTER binding is missing');
-              }
               await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
