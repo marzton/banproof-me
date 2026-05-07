@@ -37,8 +37,6 @@ export interface Env {
 
   // Service bindings (optional — not guaranteed in all environments)
   EMAIL_ROUTER?: Fetcher;
-  SEND_EMAIL?: { send: (msg: any) => Promise<void> };
-  ANALYTICS?: { write: (data: any) => void };
 
   // Email binding
   SEND_EMAIL?: SendEmail;
@@ -50,7 +48,7 @@ export interface Env {
   ENV: string;
   POA_TOKEN: string;
   AUDIT_TOKEN: string;
-  OPENAI_API_KEY: string;
+  OPENAI_API_KEY?: string;
   DISCORD_WEBHOOK?: string;
 }
 
@@ -82,7 +80,6 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
   async run(event: WorkflowEvent<WorkflowParams>, step: WorkflowStep) {
     const { jobId, contentType, payload } = event.payload;
 
-    // Step 1: Ingest and validate content
     // Step 1: Ingest and validate
     const ingested = await step.do('ingest', async () => {
       return {
@@ -93,32 +90,6 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
       };
     });
 
-    // Step 2: AI analysis (OpenAI or Workers AI)
-    const analysis = await step.do('ai-analysis', { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' } }, async () => {
-      if (!this.env.OPENAI_API_KEY) return { score: null, reason: 'no_api_key' };
-
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: 'You are a content sentiment analyzer. Respond with JSON only: {"sentiment":"positive|neutral|negative","score":0.0-1.0,"summary":"brief"}' },
-            { role: 'user', content: payload ?? 'No content provided.' },
-          ],
-          max_tokens: 200,
-          response_format: { type: 'json_object' },
-        }),
-      });
-      if (!res.ok) throw new Error(`OpenAI error: ${res.status}`);
-      const data = await res.json<{ choices: Array<{ message: { content: string } }> }>();
-      return JSON.parse(data.choices[0].message.content);
-    });
-
-    // Step 3: Write Proof of Agency record to D1
     // Step 2: AI sentiment analysis via OpenAI
     const analysis = await step.do<SentimentResult | { score: null; reason: string }>(
       'ai-analysis',
@@ -162,7 +133,6 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
       await this.env.AUDIT_DB.prepare(
         `INSERT OR IGNORE INTO worker_audit (id, ts, worker, action, result, detail)
          VALUES (?, datetime('now'), 'banproof-me', 'poa_record', 'ok', ?)`
-      ).bind(jobId, JSON.stringify({ ingested, analysis })).run();
       )
         .bind(jobId, JSON.stringify({ ingested, analysis }))
         .run();
@@ -209,13 +179,6 @@ function handleCorsPreFlight(): Response {
 // ---------------------------------------------------------------------------
 
 async function handleContactForm(request: Request, env: Env): Promise<Response> {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' } });
-  }
-
-  let fd: FormData;
-  try { fd = await request.formData(); }
-  catch { return json({ ok: false, error: 'Invalid form data' }, 400); }
   if (request.method === 'OPTIONS') return handleCorsPreFlight();
   if (request.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS);
 
@@ -231,7 +194,6 @@ async function handleContactForm(request: Request, env: Env): Promise<Response> 
   const message = (fd.get('message')  ?? '').toString().trim();
   const formType = (fd.get('formType') ?? 'armsway-inquiry').toString();
 
-  if (!name || !email || !message) return json({ ok: false, error: 'Missing required fields' }, 422);
   if (!name || !email || !message) {
     return json({ ok: false, error: 'Missing required fields: name, email, message' }, 422, CORS_HEADERS);
   }
@@ -248,7 +210,6 @@ async function handleContactForm(request: Request, env: Env): Promise<Response> 
     await env.PLATFORM_DB.prepare(
       `INSERT INTO lead_submissions (id, form_type, name, email, message, status, received_at, ip_address)
        VALUES (?, ?, ?, ?, ?, 'new', datetime('now'), ?)`
-    ).bind(id, formType, name, email, message, request.headers.get('CF-Connecting-IP') ?? null).run();
     )
       .bind(id, formType, name, email, message, ip)
       .run();
@@ -268,13 +229,6 @@ async function handleContactForm(request: Request, env: Env): Promise<Response> 
 }
 
 async function handlePoASubmit(request: Request, env: Env): Promise<Response> {
-  let body: WorkflowParams;
-  try { body = await request.json<WorkflowParams>(); }
-  catch { return json({ ok: false, error: 'Invalid JSON' }, 400); }
-
-  const jobId = body.jobId ?? crypto.randomUUID();
-  const instance = await env.CONTENT_WORKFLOW.create({ id: jobId, params: { ...body, jobId } });
-  return json({ ok: true, jobId: instance.id, status: await instance.status() });
   if (request.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS);
 
   let body: Partial<WorkflowParams>;
@@ -321,19 +275,11 @@ export default {
     const url = new URL(request.url);
     const { pathname, method } = url;
 
-    // CORS headers for API routes
-    const corsHeaders = {
-      'Access-Control-Allow-Origin': 'https://banproof.me',
-      'Vary': 'Origin',
-    };
     // Preflight
     if (method === 'OPTIONS') return handleCorsPreFlight();
 
     // Health
     if (pathname === '/health') {
-      return new Response(JSON.stringify({ ok: true, service: 'banproof-me', env: env.ENV }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      });
       return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, CORS_HEADERS);
     }
 
@@ -342,7 +288,6 @@ export default {
       return handleContactForm(request, env);
     }
 
-    if (pathname === '/api/poa/submit' && request.method === 'POST') return handlePoASubmit(request, env);
     if (pathname === '/api/poa/submit') {
       return handlePoASubmit(request, env);
     }
@@ -352,26 +297,47 @@ export default {
       return handlePoAStatus(poaMatch[1], env);
     }
 
-    // Serve static site for all other routes
     // Fallthrough → static SPA
     return env.ASSETS.fetch(request);
   },
 
   async queue(batch: MessageBatch<QueueJobMessage>, env: Env): Promise<void> {
+    await Promise.allSettled(
+      batch.messages.map(async (message) => {
+        try {
+          const { type, payload } = message.body;
+          console.log(`[Queue] Processing job: ${type}`, payload);
+
+          // Record event in analytics
+          if (env.ANALYTICS) {
+            env.ANALYTICS.write({
+              doubles: [1],
+              blobs: [type, JSON.stringify(payload)],
+            });
+          }
+
+          switch (type) {
+            case 'tier_upgraded':
+              if (env.DISCORD_WEBHOOK) {
+                await fetch(env.DISCORD_WEBHOOK, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+                  }),
+                });
+              }
+              break;
+
+            case 'send_email':
+              if (!env.EMAIL_ROUTER) {
+                throw new Error('EMAIL_ROUTER binding is missing');
+              }
+              await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
     for (const message of batch.messages) {
       const { type, payload } = message.body;
 
       try {
-        const { type, payload } = message.body;
-        console.log(`[Queue] Processing job: ${type}`, payload);
-
-        // Record event in analytics
-        if (env.ANALYTICS) {
-          env.ANALYTICS.write({
-            doubles: [1],
-            blobs: [type, JSON.stringify(payload)],
-          });
-        }
         console.log(`[queue] Processing: ${type}`, payload);
 
         // Emit analytics (non-blocking)
@@ -387,14 +353,27 @@ export default {
               await fetch(env.DISCORD_WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
-                }),
+                body: JSON.stringify(payload),
               });
+              break;
+
+            case 'sync_user':
+              // Logic for user synchronization could go here
+              break;
+
+            default:
+              console.warn(`[Queue] Unhandled job type: ${type}`);
+          }
+
+          message.ack();
+        } catch (err) {
+          console.error('[Queue] Error processing message:', err);
+          message.retry();
+        }
+      })
+    );
             }
             break;
-
-          case 'send_email':
           }
 
           case 'send_email': {
@@ -407,13 +386,6 @@ export default {
               body: JSON.stringify(payload),
             });
             break;
-
-          case 'sync_user':
-            // Logic for user synchronization could go here
-            break;
-
-          default:
-            console.warn(`[Queue] Unhandled job type: ${type}`);
           }
 
           case 'sync_user': {

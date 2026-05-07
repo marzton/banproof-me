@@ -4,6 +4,14 @@ import { resolve } from 'path';
 export default defineConfig({
   test: {
     environment: 'node',
+    include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.test.ts', 'src/index.ts', 'src/engine.ts'],
+    },
+  },
     alias: {
       'cloudflare:workers': resolve(__dirname, './src/mocks/cloudflare-workers.js')
     }
