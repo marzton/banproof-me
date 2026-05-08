@@ -245,10 +245,7 @@ async function handleContactForm(request: Request, env: Env): Promise<Response> 
     await env.PLATFORM_DB.prepare(
       `INSERT INTO lead_submissions (id, form_type, name, email, message, status, received_at, ip_address)
        VALUES (?, ?, ?, ?, ?, 'new', datetime('now'), ?)`
-    ).bind(id, formType, name, email, message, request.headers.get('CF-Connecting-IP') ?? null).run();
-    )
-      .bind(id, formType, name, email, message, ip)
-      .run();
+    ).bind(id, formType, name, email, message, ip).run();
   } catch (e) {
     console.error('[contact] DB insert failed:', e);
     // Non-fatal — still return success to avoid leaking internal errors
