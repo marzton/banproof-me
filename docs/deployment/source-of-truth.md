@@ -26,10 +26,10 @@ This repository blocks deploys when Cloudflare routes/bindings drift from commit
 
 `python scripts/validate_cloudflare_manifests.py` checks for each deploy target/environment:
 
-- required binding presence by type: D1, KV, R2, service, send_email, workflows, queues, vars, and declared secrets references;
+- required binding presence by type: D1, KV, R2, service, send_email, workflows, queues, and vars;
 - duplicate binding names (e.g., duplicate route producer binding names in one env).
 
-`python check_routes.py` ensures required routes are present and forbidden routes are absent across wrangler manifests.
+`python check_routes.py` ensures required routes are present and forbidden routes are absent across scanned `wrangler.toml` manifests.
 
 ## CI enforcement
 
