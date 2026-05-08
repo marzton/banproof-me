@@ -325,10 +325,7 @@ export default {
 
     // Health
     if (pathname === '/health') {
-      return new Response(JSON.stringify({ ok: true, service: 'banproof-me', env: env.ENV }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      });
-      return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, CORS_HEADERS);
+      return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, corsHeaders);
     }
 
     // API routes
