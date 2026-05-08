@@ -1,5 +1,14 @@
 {
   "repo": "banproof.me",
+  "deployable_manifest_paths": [
+    "wrangler.toml",
+    "gateway/wrangler.toml"
+  ],
+  "archived_manifest_paths": [
+    "apps/armsway-com/wrangler.toml",
+    "apps/gs-core-worker/wrangler.toml",
+    "worker/wrangler.toml"
+  ],
   "production": {
     "zone": "banproof.me",
     "host": "banproof.me",
