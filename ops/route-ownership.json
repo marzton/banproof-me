@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "zone_name": "banproof.me",
+  "environments": {
+    "production": {
+      "routes": [
+        {
+          "pattern": "banproof.me/*",
+          "owner": "pages-assets",
+          "runtime": "pages:banproof"
+        },
+        {
+          "pattern": "www.banproof.me/*",
+          "owner": "pages-assets",
+          "runtime": "pages:banproof"
+        },
+        {
+          "pattern": "api.banproof.me/*",
+          "owner": "gateway-worker",
+          "runtime": "worker:banproof-gateway"
+        },
+        {
+          "pattern": "admin.banproof.me/*",
+          "owner": "gateway-worker",
+          "runtime": "worker:banproof-gateway"
+        },
+        {
+          "pattern": "preview.banproof.me/*",
+          "owner": "preview-runtime",
+          "runtime": "worker:banproof-gateway-preview"
+        }
+      ]
+    },
+    "staging": {
+      "routes": [
+        {
+          "pattern": "banproof.me/*",
+          "owner": "pages-assets",
+          "runtime": "pages:banproof"
+        },
+        {
+          "pattern": "www.banproof.me/*",
+          "owner": "pages-assets",
+          "runtime": "pages:banproof"
+        },
+        {
+          "pattern": "api.banproof.me/*",
+          "owner": "gateway-worker",
+          "runtime": "worker:banproof-gateway"
+        },
+        {
+          "pattern": "admin.banproof.me/*",
+          "owner": "gateway-worker",
+          "runtime": "worker:banproof-gateway"
+        },
+        {
+          "pattern": "preview.banproof.me/*",
+          "owner": "preview-runtime",
+          "runtime": "worker:banproof-gateway-preview"
+        }
+      ]
+    },
+    "preview": {
+      "routes": [
+        {
+          "pattern": "banproof.me/*",
+          "owner": "pages-assets",
+          "runtime": "pages:banproof"
+        },
+        {
+          "pattern": "www.banproof.me/*",
+          "owner": "pages-assets",
+          "runtime": "pages:banproof"
+        },
+        {
+          "pattern": "api.banproof.me/*",
+          "owner": "gateway-worker",
+          "runtime": "worker:banproof-gateway"
+        },
+        {
+          "pattern": "admin.banproof.me/*",
+          "owner": "gateway-worker",
+          "runtime": "worker:banproof-gateway"
+        },
+        {
+          "pattern": "preview.banproof.me/*",
+          "owner": "preview-runtime",
+          "runtime": "worker:banproof-gateway-preview"
+        }
+      ]
+    }
+  }
+}

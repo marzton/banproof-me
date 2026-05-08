@@ -1,18 +1,55 @@
 {
+  "canonical_source": "ops/route-ownership.json",
   "zone_name": "banproof.me",
-  "required_dns": [
-    "api.banproof.me",
-    "admin.banproof.me",
-    "preview.banproof.me"
-  ],
-  "required_routes": [
-    "api.banproof.me/*",
-    "admin.banproof.me/*",
-    "preview.banproof.me/*"
-  ],
-  "forbidden_routes": [
-    "banproof.me/*",
-    "www.banproof.me/*"
-  ],
+  "environments": {
+    "production": {
+      "required_dns": [
+        "api.banproof.me",
+        "admin.banproof.me",
+        "preview.banproof.me"
+      ],
+      "required_routes": [
+        "api.banproof.me/*",
+        "admin.banproof.me/*",
+        "preview.banproof.me/*"
+      ],
+      "forbidden_worker_routes": [
+        "banproof.me/*",
+        "www.banproof.me/*"
+      ]
+    },
+    "staging": {
+      "required_dns": [
+        "api.banproof.me",
+        "admin.banproof.me",
+        "preview.banproof.me"
+      ],
+      "required_routes": [
+        "api.banproof.me/*",
+        "admin.banproof.me/*",
+        "preview.banproof.me/*"
+      ],
+      "forbidden_worker_routes": [
+        "banproof.me/*",
+        "www.banproof.me/*"
+      ]
+    },
+    "preview": {
+      "required_dns": [
+        "api.banproof.me",
+        "admin.banproof.me",
+        "preview.banproof.me"
+      ],
+      "required_routes": [
+        "api.banproof.me/*",
+        "admin.banproof.me/*",
+        "preview.banproof.me/*"
+      ],
+      "forbidden_worker_routes": [
+        "banproof.me/*",
+        "www.banproof.me/*"
+      ]
+    }
+  },
   "required_kv_namespaces": []
 }
