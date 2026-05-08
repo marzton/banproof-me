@@ -253,7 +253,7 @@ export default {
 
         // Record event in analytics if available
         if (env.ANALYTICS) {
-          env.ANALYTICS.writeDataPoint({
+          env.ANALYTICS.write({
             doubles: [1],
             blobs: [type, JSON.stringify(payload)],
           });
