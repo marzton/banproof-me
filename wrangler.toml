@@ -196,10 +196,12 @@ database_id = "1ae71d76-188f-481b-91d9-db2d39013f68"
 binding = "GS_CONFIG"
 id = "5f13370575784c9dacff522121104cb3"
 
-[[kv_namespaces]]
+
+[env.dev]
+
+[[env.dev.kv_namespaces]]
 binding = "BANPROOF_KV"
 id = "b9824d3280c54573a24137c7e7143b33" # Mock ID
-
 [[kv_namespaces]]
 binding = "GOLDSHORE_KV"
 id = "af8eb071fce34b5eafbdeb1badd93876" # Mock ID
