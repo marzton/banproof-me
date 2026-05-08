@@ -1,4 +1,4 @@
-name                = "banproof-core"
+name                = "banproof-me"
 main                = "src/index.ts"
 compatibility_date  = "2026-04-01"
 compatibility_flags = ["nodejs_compat"]
@@ -14,6 +14,10 @@ zone_name = "banproof.me"
 
 [[routes]]
 pattern   = "admin.banproof.me/*"
+zone_name = "banproof.me"
+
+[[routes]]
+pattern   = "api.banproof.me/*"
 zone_name = "banproof.me"
 
 [[routes]]
@@ -88,7 +92,7 @@ binding = "EMAIL_ROUTER"
 service = "banproof-email-router"
 
 # ── Analytics Engine ──────────────────────────────────────────
-[[analytics_engine_datasets]]
+[[analytics_engines]]
 binding = "ANALYTICS"
 dataset = "banproof_events"
 
@@ -216,18 +220,6 @@ max_batch_timeout = 30
 [[queues.producers]]
 binding = "MAIL_QUEUE"
 queue = "gs-mail-jobs"
-[[services]]
-binding = "SECURITY"
-service = "banproof-me"
-
-[[services]]
-binding = "SIGNALS"
-service = "gs-signals-prod"
-
-[[queues.producers]]
-binding = "MAIL_QUEUE"
-queue = "gs-mail-jobs"
-
 [[services]]
 binding = "SECURITY"
 service = "banproof-me"
