@@ -6,13 +6,5 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260401.1",
     "wrangler": "^4.0.0"
-  "name": "banproof-monorepo",
-  "private": true,
-  "version": "1.0.0",
-  "private": true,
-  "description": "banproof.me monorepo root",
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260401.1",
-    "wrangler": "^4.0.0"
   }
 }
