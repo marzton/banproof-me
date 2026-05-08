@@ -382,6 +382,18 @@ export default {
       const { type, payload } = message.body;
 
       try {
+        const { type, payload } = message.body;
+        const correlationId =
+          typeof payload?.correlationId === 'string' ? payload.correlationId : undefined;
+        console.log(`[Queue] Processing job: ${type}`, { correlationId });
+
+        // Record event in analytics
+        if (env.ANALYTICS) {
+          env.ANALYTICS.writeDataPoint({
+            doubles: [1],
+            blobs: [type, JSON.stringify(payload)],
+          });
+        }
         console.log(`[queue] Processing: ${type}`, payload);
 
         // Emit analytics (non-blocking)
