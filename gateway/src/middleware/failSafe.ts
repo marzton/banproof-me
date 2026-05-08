@@ -11,6 +11,10 @@ export const failSafeMiddleware = async (c: Context, next: Next) => {
     }
     // Fail open (graceful degradation) for public routes
     console.error('Graceful degradation on public route:', err);
-    return c.json({ ok: false, warning: 'Service degraded but running.', error: String(err) }, 200);
+    const runtimeEnv = (c.env as { ENVIRONMENT?: string; ENV?: string } | undefined);
+    const environment = runtimeEnv?.ENVIRONMENT ?? runtimeEnv?.ENV ?? 'production';
+    const exposeDetailedErrors = environment !== 'production';
+    const errorMessage = exposeDetailedErrors ? String(err) : 'Internal Server Error';
+    return c.json({ ok: false, warning: 'Service degraded but running.', error: errorMessage }, 200);
   }
 };
