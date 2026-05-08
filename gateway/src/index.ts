@@ -15,56 +15,25 @@ import { accessControlMiddleware } from './middleware/accessControl.js';
 import { enforceRBAC } from './middleware/zeroEdgeSSO.js';
 import authRoutes      from './routes/auth.js';
 import adminRoutes     from './routes/admin.js';
-import type { AccessContext } from './types/access.js';
+import type { Bindings, Variables, QueueJobMessage } from './types/env.js';
 import { SentimentWorkflow } from './workflows/sentimentWorkflow.js';
 import adminEmailRoutes from './routes/adminEmail.js';
+import { failSafeMiddleware } from './middleware/failSafe.js';
 
-// ── Bindings type ─────────────────────────────────────────────
-type Bindings = {
-  DB:               D1Database;
-  CACHE:            KVNamespace;
-  INFRA_SECRETS:    KVNamespace;
-  ENGINE:           Workflow;
-  PURCHASE_WORKFLOW: Workflow;
-  STORAGE:          R2Bucket;
-  AI:               Ai;
-  ENVIRONMENT:      string;
-  USE_MOCK:         string;
-  JWT_SECRET:       string;
-  CORS_ORIGINS?:    string;
-  HF_API_TOKEN?:    string;
-  ODDS_API_KEY?:    string;
-  DISCORD_WEBHOOK?: string;
-  /** Service binding → saas-admin-template-customer-workflow */
-  WORKFLOW:         Fetcher;
-  /** Service binding → banproof-email-router */
-  EMAIL_ROUTER:     Fetcher;
-  /** Queue producer → goldshore-jobs */
-  QUEUE:            Queue<QueueJobMessage>;
-};
 
-type Variables = {
-  auth: import('./types/api.js').AuthContext;
-  poaScore?: number;
-  accessContext?: AccessContext;
-};
 
-// ── Queue message schema ──────────────────────────────────────
-type QueueJobMessage = {
-  /** Discriminates the job variant (e.g. 'sync_user', 'send_email'). */
-  type: string;
-  payload: Record<string, unknown>;
-};
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // ── CORS middleware ───────────────────────────────────────────
+app.use('*', failSafeMiddleware);
+
 app.use(
   '/api/*',
   cors({
     origin: (origin, c) => {
       const allowList = c.env.CORS_ORIGINS
-        ? c.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+        ? c.env.CORS_ORIGINS.split(',').map((o: string) => o.trim())
         : ['https://banproof.me', 'http://localhost:5500', 'http://localhost:8788'];
       return allowList.includes(origin) ? origin : null;
     },
@@ -274,30 +243,32 @@ export default {
   // ── Queue consumer: goldshore-jobs ─────────────────────────
   async queue(
     batch: MessageBatch<QueueJobMessage>,
-    env: Bindings,
+    _env: Bindings,
   ): Promise<void> {
     for (const message of batch.messages) {
       try {
+        // TODO: dispatch message.body.type to the appropriate handler.
         const { type, payload } = message.body;
+        console.log(`[Queue] Processing job: ${type}`, payload);
+
+        // Record event in analytics if available
+        if (env.ANALYTICS) {
+          env.ANALYTICS.write({
+            doubles: [1],
+            blobs: [type, JSON.stringify(payload)],
+          });
+        }
 
         switch (type) {
           case 'tier_upgraded': {
-            console.log(`[Queue] tier_upgraded:`, payload);
             if (env.DISCORD_WEBHOOK) {
-              const discordResponse = await fetch(env.DISCORD_WEBHOOK, {
+              await fetch(env.DISCORD_WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
                 }),
               });
-
-              if (!discordResponse.ok) {
-                const errorBody = await discordResponse.text();
-                throw new Error(
-                  `Discord webhook failed with ${discordResponse.status} ${discordResponse.statusText}${errorBody ? `: ${errorBody}` : ''}`,
-                );
-              }
             }
             break;
           }
@@ -315,7 +286,7 @@ export default {
           }
 
           case 'sync_user': {
-            console.log(`[Queue] sync_user job:`, payload);
+            // Logic for user synchronization could go here
             break;
           }
 
@@ -324,8 +295,7 @@ export default {
         }
 
         message.ack();
-      } catch (err) {
-        console.error('[Queue] Job processing failed:', err);
+      } catch {
         message.retry();
       }
     }
