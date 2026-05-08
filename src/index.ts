@@ -1,35 +1,3 @@
-import {
-  WorkflowEntrypoint,
-  WorkflowEvent,
-  WorkflowStep,
-} from 'cloudflare:workers'
-
-type ContentProcessingParams = {
-  contentId?: string
-  source?: string
-}
-
-export class ContentProcessingWorkflow extends WorkflowEntrypoint {
-  async run(
-    event: WorkflowEvent<ContentProcessingParams>,
-    step: WorkflowStep,
-  ): Promise<{ status: string; contentId: string | null }> {
-    const payload = await step.do('capture-payload', async () => {
-      return {
-        contentId: event.payload?.contentId ?? null,
-        source: event.payload?.source ?? 'unknown',
-      }
-    })
-
-    await step.do('mark-complete', async () => {
-      console.log('content-processing-workflow completed', payload)
-      return true
-    })
-
-    return {
-      status: 'completed',
-      contentId: payload.contentId,
-    }
 /**
  * banproof-me — Proof of Agency gateway + content processing
  *
@@ -303,18 +271,6 @@ async function handlePoAStatus(jobId: string, env: Env): Promise<Response> {
 // ---------------------------------------------------------------------------
 
 export default {
-  async fetch(request: Request): Promise<Response> {
-    const { pathname } = new URL(request.url)
-
-    if (pathname === '/health') {
-      return new Response('ok', { status: 200 })
-    }
-
-    return new Response('banproof-me worker online', {
-      headers: { 'content-type': 'text/plain; charset=utf-8' },
-    })
-  },
-}
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const { pathname, method } = url;
@@ -346,43 +302,10 @@ export default {
   },
 
   async queue(batch: MessageBatch<QueueJobMessage>, env: Env): Promise<void> {
-    await Promise.allSettled(
-      batch.messages.map(async (message) => {
-        try {
-          const { type, payload } = message.body;
-          console.log(`[Queue] Processing job: ${type}`, payload);
-
-          // Record event in analytics
-          if (env.ANALYTICS) {
-            env.ANALYTICS.write({
-              doubles: [1],
-              blobs: [type, JSON.stringify(payload)],
-            });
-          }
-
-          switch (type) {
-            case 'tier_upgraded':
-              if (env.DISCORD_WEBHOOK) {
-                await fetch(env.DISCORD_WEBHOOK, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
-                  }),
-                });
-              }
-              break;
-
-            case 'send_email':
-              if (!env.EMAIL_ROUTER) {
-                throw new Error('EMAIL_ROUTER binding is missing');
-              }
-              await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
     for (const message of batch.messages) {
       const { type, payload } = message.body;
 
       try {
-        const { type, payload } = message.body;
         const correlationId =
           typeof payload?.correlationId === 'string' ? payload.correlationId : undefined;
         console.log(`[Queue] Processing job: ${type}`, { correlationId });
@@ -392,16 +315,9 @@ export default {
           env.ANALYTICS.writeDataPoint({
             doubles: [1],
             blobs: [type, JSON.stringify(payload)],
+            indexes: [type],
           });
         }
-        console.log(`[queue] Processing: ${type}`, payload);
-
-        // Emit analytics (non-blocking)
-        env.ANALYTICS?.writeDataPoint({
-          doubles: [1],
-          blobs: [type, JSON.stringify(payload)],
-          indexes: [type],
-        });
 
         switch (type) {
           case 'tier_upgraded': {
@@ -411,23 +327,6 @@ export default {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
               });
-              break;
-
-            case 'sync_user':
-              // Logic for user synchronization could go here
-              break;
-
-            default:
-              console.warn(`[Queue] Unhandled job type: ${type}`);
-          }
-
-          message.ack();
-        } catch (err) {
-          console.error('[Queue] Error processing message:', err);
-          message.retry();
-        }
-      })
-    );
             }
             break;
           }
