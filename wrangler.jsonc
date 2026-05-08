@@ -2,7 +2,7 @@
 {
   "name": "banproof-me",
   "main": "src/index.ts",
-  "compatibility_date": "2025-03-07",
+  "compatibility_date": "MATCH_WRANGLER_TOML_COMPATIBILITY_DATE",
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true,
