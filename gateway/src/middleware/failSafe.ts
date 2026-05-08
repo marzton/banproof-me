@@ -9,8 +9,12 @@ export const failSafeMiddleware = async (c: Context, next: Next) => {
     if (path.includes('stripe') || path.includes('billing')) {
       return c.json({ ok: false, error: 'Internal Server Error - Security Abort' }, 500);
     }
-    // Fail open (graceful degradation) for public routes
+    // Return a sanitized server error for public routes while logging details internally
     console.error('Graceful degradation on public route:', err);
-    return c.json({ ok: false, warning: 'Service degraded but running.' }, 200);
+    const runtimeEnv = (c.env as { ENVIRONMENT?: string; ENV?: string } | undefined);
+    const environment = runtimeEnv?.ENVIRONMENT ?? runtimeEnv?.ENV ?? 'production';
+    const exposeDetailedErrors = environment !== 'production';
+    const errorMessage = exposeDetailedErrors ? String(err) : 'Internal Server Error';
+    return c.json({ ok: false, warning: 'Service degraded but running.', error: errorMessage }, 200);
   }
 };
