@@ -358,7 +358,7 @@ export default {
 
         // Record event in analytics
         if (env.ANALYTICS) {
-          env.ANALYTICS.writeDataPoint({
+          env.ANALYTICS.write({
             doubles: [1],
             blobs: [type, JSON.stringify(payload)],
           });
@@ -392,14 +392,11 @@ export default {
             if (!env.EMAIL_ROUTER) {
               throw new Error('EMAIL_ROUTER service binding is not configured');
             }
-            const emailResponse = await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload),
             });
-            if (!emailResponse.ok) {
-              throw new Error(`EMAIL_ROUTER returned ${emailResponse.status}`);
-            }
             break;
 
           case 'sync_user':
