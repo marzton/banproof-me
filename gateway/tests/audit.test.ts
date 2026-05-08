@@ -88,7 +88,9 @@ describe('Audit Handler', () => {
     const kvGet = vi.fn().mockResolvedValue('mock-gh-pat');
     const env = { INFRA_SECRETS: makeKV(kvGet) } as any;
 
-    fetchSpy.mockResolvedValue(new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 }));
+    fetchSpy
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 }));
 
     const res = await audit.fetch(req, env, makeCtx());
 
