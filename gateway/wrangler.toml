@@ -223,15 +223,3 @@ service = "banproof-me"
 [[services]]
 binding = "SIGNALS"
 service = "gs-signals-prod"
-
-[[queues.producers]]
-binding = "MAIL_QUEUE"
-queue = "gs-mail-jobs"
-
-[[services]]
-binding = "SECURITY"
-service = "banproof-me"
-
-[[services]]
-binding = "SIGNALS"
-service = "gs-signals-prod"
