@@ -38,7 +38,6 @@ export type Bindings = {
   CF_ACCESS_AUDIENCE?:      string;
   CF_ZERO_EDGE_PUBLIC_KEY?: string;
   TRUSTED_ADMIN_IPS?:       string;
-  DISCORD_WEBHOOK?:         string;
 };
 
 export type Variables = {

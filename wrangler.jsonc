@@ -54,7 +54,7 @@
     "producers": [
       {
         "binding": "GS_EVENTS",
-        "queue": "gs-events"
+        "queue": "goldshore-jobs"
       }
     ]
   },

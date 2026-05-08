@@ -1,3 +1,35 @@
+import {
+  WorkflowEntrypoint,
+  WorkflowEvent,
+  WorkflowStep,
+} from 'cloudflare:workers'
+
+type ContentProcessingParams = {
+  contentId?: string
+  source?: string
+}
+
+export class ContentProcessingWorkflow extends WorkflowEntrypoint {
+  async run(
+    event: WorkflowEvent<ContentProcessingParams>,
+    step: WorkflowStep,
+  ): Promise<{ status: string; contentId: string | null }> {
+    const payload = await step.do('capture-payload', async () => {
+      return {
+        contentId: event.payload?.contentId ?? null,
+        source: event.payload?.source ?? 'unknown',
+      }
+    })
+
+    await step.do('mark-complete', async () => {
+      console.log('content-processing-workflow completed', payload)
+      return true
+    })
+
+    return {
+      status: 'completed',
+      contentId: payload.contentId,
+    }
 /**
  * banproof-me — Proof of Agency gateway + content processing
  *
@@ -50,7 +82,7 @@ export interface Env {
   ENV: string;
   POA_TOKEN: string;
   AUDIT_TOKEN: string;
-  OPENAI_API_KEY: string;
+  OPENAI_API_KEY?: string;
   DISCORD_WEBHOOK?: string;
 }
 
@@ -163,9 +195,6 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
         `INSERT OR IGNORE INTO worker_audit (id, ts, worker, action, result, detail)
          VALUES (?, datetime('now'), 'banproof-me', 'poa_record', 'ok', ?)`
       ).bind(jobId, JSON.stringify({ ingested, analysis })).run();
-      )
-        .bind(jobId, JSON.stringify({ ingested, analysis }))
-        .run();
     });
 
     return { jobId, ingested, analysis };
@@ -248,10 +277,7 @@ async function handleContactForm(request: Request, env: Env): Promise<Response> 
     await env.PLATFORM_DB.prepare(
       `INSERT INTO lead_submissions (id, form_type, name, email, message, status, received_at, ip_address)
        VALUES (?, ?, ?, ?, ?, 'new', datetime('now'), ?)`
-    ).bind(id, formType, name, email, message, request.headers.get('CF-Connecting-IP') ?? null).run();
-    )
-      .bind(id, formType, name, email, message, ip)
-      .run();
+    ).bind(id, formType, name, email, message, ip).run();
   } catch (e) {
     console.error('[contact] DB insert failed:', e);
     // Non-fatal — still return success to avoid leaking internal errors
@@ -317,6 +343,18 @@ async function handlePoAStatus(jobId: string, env: Env): Promise<Response> {
 // ---------------------------------------------------------------------------
 
 export default {
+  async fetch(request: Request): Promise<Response> {
+    const { pathname } = new URL(request.url)
+
+    if (pathname === '/health') {
+      return new Response('ok', { status: 200 })
+    }
+
+    return new Response('banproof-me worker online', {
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    })
+  },
+}
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const { pathname, method } = url;
@@ -331,10 +369,7 @@ export default {
 
     // Health
     if (pathname === '/health') {
-      return new Response(JSON.stringify({ ok: true, service: 'banproof-me', env: env.ENV }), {
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      });
-      return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, CORS_HEADERS);
+      return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, corsHeaders);
     }
 
     // API routes
@@ -358,16 +393,50 @@ export default {
   },
 
   async queue(batch: MessageBatch<QueueJobMessage>, env: Env): Promise<void> {
+    await Promise.allSettled(
+      batch.messages.map(async (message) => {
+        try {
+          const { type, payload } = message.body;
+          console.log(`[Queue] Processing job: ${type}`, payload);
+
+          // Record event in analytics
+          if (env.ANALYTICS) {
+            env.ANALYTICS.write({
+              doubles: [1],
+              blobs: [type, JSON.stringify(payload)],
+            });
+          }
+
+          switch (type) {
+            case 'tier_upgraded':
+              if (env.DISCORD_WEBHOOK) {
+                await fetch(env.DISCORD_WEBHOOK, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+                  }),
+                });
+              }
+              break;
+
+            case 'send_email':
+              if (!env.EMAIL_ROUTER) {
+                throw new Error('EMAIL_ROUTER binding is missing');
+              }
+              await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
     for (const message of batch.messages) {
       const { type, payload } = message.body;
 
       try {
         const { type, payload } = message.body;
-        console.log(`[Queue] Processing job: ${type}`, payload);
+        const correlationId =
+          typeof payload?.correlationId === 'string' ? payload.correlationId : undefined;
+        console.log(`[Queue] Processing job: ${type}`, { correlationId });
 
         // Record event in analytics
         if (env.ANALYTICS) {
-          env.ANALYTICS.write({
+          env.ANALYTICS.writeDataPoint({
             doubles: [1],
             blobs: [type, JSON.stringify(payload)],
           });
@@ -387,10 +456,25 @@ export default {
               await fetch(env.DISCORD_WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
-                }),
+                body: JSON.stringify(payload),
               });
+              break;
+
+            case 'sync_user':
+              // Logic for user synchronization could go here
+              break;
+
+            default:
+              console.warn(`[Queue] Unhandled job type: ${type}`);
+          }
+
+          message.ack();
+        } catch (err) {
+          console.error('[Queue] Error processing message:', err);
+          message.retry();
+        }
+      })
+    );
             }
             break;
 
