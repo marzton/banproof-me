@@ -57,9 +57,5 @@
         "queue": "gs-events"
       }
     ]
-  },
-  "routes": [
-    { "pattern": "banproof.me/*", "zone_name": "banproof.me" },
-    { "pattern": "www.banproof.me/*", "zone_name": "banproof.me" }
-  ]
+  }
 }
