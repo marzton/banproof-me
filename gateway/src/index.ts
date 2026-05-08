@@ -243,7 +243,7 @@ export default {
   // ── Queue consumer: goldshore-jobs ─────────────────────────
   async queue(
     batch: MessageBatch<QueueJobMessage>,
-    _env: Bindings,
+    env: Bindings,
   ): Promise<void> {
     for (const message of batch.messages) {
       try {
