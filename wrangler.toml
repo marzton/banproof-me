@@ -1,8 +1,125 @@
-name = "banproof-me"
+name = "banproof.me"
 main = "src/index.ts"
 compatibility_date = "2025-09-27"
 compatibility_flags = ["nodejs_compat"]
+// wrangler.jsonc — banproof-me worker configuration
+{
+  "name": "banproof-me",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-09-27",
+  "compatibility_flags": ["nodejs_compat"],
 
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
+  // Static assets — SPA fallback for public site
+  "assets": {
+    "directory": "./public",
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS"
+  },
+
+  "vars": {
+    "ENV": "production"
+  },
+
+  // KV
+  "kv_namespaces": [
+    {
+      "binding": "GS_CONFIG",
+      "id": "5f13370575784c9dacff522121104cb3"
+    }
+  ],
+
+  // D1 Databases
+  "d1_databases": [
+    {
+      "binding": "PLATFORM_DB",
+      "database_name": "gs_platform_db",
+      "database_id": "9703574e-adb7-481e-8d98-96f8ce5f8a90"
+    },
+    {
+      "binding": "AUDIT_DB",
+      "database_name": "gs_audit_db",
+      "database_id": "1ae71d76-188f-481b-91d9-db2d39013f68"
+    }
+  ],
+
+  // R2
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_STORE",
+      "bucket_name": "gs-assets"
+    }
+  ],
+
+  // Workflow — AI/sentiment content processing pipeline
+  "workflows": [
+    {
+      "name": "content-processing-workflow",
+      "binding": "CONTENT_WORKFLOW",
+      "class_name": "ContentProcessingWorkflow"
+    }
+  ],
+
+  // Queues
+  "queues": {
+    "producers": [
+      {
+        "binding": "GS_EVENTS",
+        "queue": "goldshore-jobs"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "goldshore-jobs",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30
+      }
+    ]
+  },
+
+  // Email
+  "send_email": [
+    {
+      "name": "SEND_EMAIL"
+    }
+  ],
+
+  // Service bindings
+  "services": [
+    {
+      "binding": "EMAIL_ROUTER",
+      "service": "banproof-email-router"
+    }
+  ],
+
+  // Analytics Engine — was "analytics_engines" (invalid), now correct key
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS",
+      "dataset": "banproof_events"
+    }
+  ],
+
+  // Routes
+  "routes": [
+    {
+      "pattern": "banproof.me/*",
+      "zone_name": "banproof.me"
+    },
+    {
+      "pattern": "www.banproof.me/*",
+      "zone_name": "banproof.me"
+    },
+    {
+      "pattern": "preview.banproof.me/*",
+      "zone_name": "banproof.me"
+    }
+  ]
+}
 [observability]
 enabled = true
 head_sampling_rate = 1
@@ -21,25 +138,6 @@ ENV = "production"
 #   AUDIT_TOKEN
 #   OPENAI_API_KEY
 
-[[kv_namespaces]]
-binding = "GS_CONFIG"
-id = "5f13370575784c9dacff522121104cb3"
-
-[[d1_databases]]
-binding = "PLATFORM_DB"
-database_name = "gs_platform_db"
-database_id = "9703574e-adb7-481e-8d98-96f8ce5f8a90"
-
-[[d1_databases]]
-binding = "AUDIT_DB"
-database_name = "gs_audit_db"
-database_id = "1ae71d76-188f-481b-91d9-db2d39013f68"
-
-[[r2_buckets]]
-binding = "MEDIA_STORE"
-bucket_name = "gs-assets"
-
-# Workflow for content/AI/sentiment processing
 [[workflows]]
 name = "content-processing-workflow"
 binding = "CONTENT_WORKFLOW"
@@ -50,6 +148,10 @@ class_name = "ContentProcessingWorkflow"
 binding = "GS_EVENTS"
 queue = "goldshore-jobs"
 
+# Routes — banproof.me only (was wrongly pointing to rmarston.com)
+[[routes]]
+pattern = "preview.banproof.me/*"
+zone_name = "banproof.me"
 [[queues.consumers]]
 queue = "goldshore-jobs"
 max_batch_size = 10
@@ -69,7 +171,6 @@ service = "banproof-email-router"
 binding = "ANALYTICS"
 dataset = "banproof_events"
 
-# Routes — banproof.me only (was wrongly pointing to rmarston.com)
 [[routes]]
 pattern = "banproof.me/*"
 zone_name = "banproof.me"
@@ -77,3 +178,44 @@ zone_name = "banproof.me"
 [[routes]]
 pattern = "www.banproof.me/*"
 zone_name = "banproof.me"
+
+
+
+
+[[d1_databases]]
+binding = "PLATFORM_DB"
+database_name = "gs_platform_db"
+database_id = "9703574e-adb7-481e-8d98-96f8ce5f8a90"
+
+[[d1_databases]]
+binding = "AUDIT_DB"
+database_name = "gs_audit_db"
+database_id = "1ae71d76-188f-481b-91d9-db2d39013f68"
+
+[[kv_namespaces]]
+binding = "GS_CONFIG"
+id = "5f13370575784c9dacff522121104cb3"
+
+[[kv_namespaces]]
+binding = "BANPROOF_KV"
+id = "b9824d3280c54573a24137c7e7143b33" # Mock ID
+
+[[kv_namespaces]]
+binding = "GOLDSHORE_KV"
+id = "af8eb071fce34b5eafbdeb1badd93876" # Mock ID
+
+[[r2_buckets]]
+binding = "MEDIA_STORE"
+bucket_name = "gs-assets"
+
+[[r2_buckets]]
+binding = "TELEMETRY_STORE"
+bucket_name = "gs-telemetry-storage"
+
+[[services]]
+binding = "SECURITY"
+service = "banproof-me"
+
+[[services]]
+binding = "SIGNALS"
+service = "gs-signals-prod"
