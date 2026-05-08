@@ -249,7 +249,14 @@ export default {
       try {
         // TODO: dispatch message.body.type to the appropriate handler.
         const { type, payload } = message.body;
-        console.log(`[Queue] Processing job: ${type}`, payload);
+        const correlationId =
+          payload &&
+          typeof payload === 'object' &&
+          'correlationId' in payload &&
+          (typeof payload.correlationId === 'string' || typeof payload.correlationId === 'number')
+            ? String(payload.correlationId)
+            : undefined;
+        console.log(`[Queue] Processing job: ${type}`, { correlationId });
 
         // Record event in analytics if available
         if (env.ANALYTICS) {
@@ -262,13 +269,16 @@ export default {
         switch (type) {
           case 'tier_upgraded': {
             if (env.DISCORD_WEBHOOK) {
-              await fetch(env.DISCORD_WEBHOOK, {
+              const response = await fetch(env.DISCORD_WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
                 }),
               });
+              if (!response.ok) {
+                throw new Error(`Discord webhook failed with status ${response.status}`);
+              }
             }
             break;
           }
