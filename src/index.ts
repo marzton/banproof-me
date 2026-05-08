@@ -76,6 +76,12 @@ type SentimentResult = {
   summary: string
 }
 
+type WorkflowResult = {
+  jobId: string
+  ingested: Record<string, unknown>
+  analysis: SentimentResult | { score: null; reason: string }
+}
+
 // ---------------------------------------------------------------------------
 // Workflow — durable AI/sentiment processing pipeline
 // ---------------------------------------------------------------------------
@@ -84,7 +90,7 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
   async run(
     event: WorkflowEvent<WorkflowParams>,
     step: WorkflowStep
-  ): Promise<{ jobId: string; ingested: Record<string, unknown>; analysis: SentimentResult | { score: null; reason: string } }> {
+  ): Promise<WorkflowResult> {
     const { jobId, contentType, payload } = event.payload
 
     const ingested = await step.do('ingest', async () => {
@@ -128,8 +134,36 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
 
         if (!res.ok) throw new Error(`OpenAI error: ${res.status}`)
 
-        const data = await res.json<{ choices: Array<{ message: { content: string } }> }>()
-        return JSON.parse(data.choices[0].message.content) as SentimentResult
+        const data = await res.json<{ choices?: Array<{ message?: { content?: string } }> }>()
+        const content = data?.choices?.[0]?.message?.content
+        if (typeof content !== 'string') {
+          throw new Error('OpenAI response missing content')
+        }
+
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(content)
+        } catch (error) {
+          throw new Error('OpenAI response was not valid JSON')
+        }
+
+        if (!parsed || typeof parsed !== 'object') {
+          throw new Error('OpenAI response shape invalid')
+        }
+
+        const sentiment = (parsed as { sentiment?: unknown }).sentiment
+        const score = (parsed as { score?: unknown }).score
+        const summary = (parsed as { summary?: unknown }).summary
+
+        if (
+          (sentiment !== 'positive' && sentiment !== 'neutral' && sentiment !== 'negative') ||
+          typeof score !== 'number' ||
+          typeof summary !== 'string'
+        ) {
+          throw new Error('OpenAI response fields invalid')
+        }
+
+        return { sentiment, score, summary }
       }
     )
 
