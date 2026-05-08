@@ -1,7 +1,5 @@
 # banproof.me — Banproof / Proof of Agency
 
-<a href="https://github.com/marzton/banproof.me/actions/workflows/deploy.yml"><img src="https://github.com/marzton/banproof.me/actions/workflows/deploy.yml/badge.svg?branch=main"></a>
-
 ## Repo → Worker → Domain
 | App | CF Pages | Domain | Status |
 |-----|----------|--------|--------|
