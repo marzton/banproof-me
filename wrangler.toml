@@ -211,10 +211,12 @@ database_id = "f77de112-d201-9e54-56a3-198a8bb50bd2" # Mock ID
 binding = "GS_CONFIG"
 id = "5f13370575784c9dacff522121104cb3"
 
-[[kv_namespaces]]
+
+[env.dev]
+
+[[env.dev.kv_namespaces]]
 binding = "BANPROOF_KV"
 id = "b9824d3280c54573a24137c7e7143b33" # Mock ID
-
 [[kv_namespaces]]
 binding = "GOLDSHORE_KV"
 id = "af8eb071fce34b5eafbdeb1badd93876" # Mock ID
