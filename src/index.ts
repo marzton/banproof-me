@@ -163,9 +163,6 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
         `INSERT OR IGNORE INTO worker_audit (id, ts, worker, action, result, detail)
          VALUES (?, datetime('now'), 'banproof-me', 'poa_record', 'ok', ?)`
       ).bind(jobId, JSON.stringify({ ingested, analysis })).run();
-      )
-        .bind(jobId, JSON.stringify({ ingested, analysis }))
-        .run();
     });
 
     return { jobId, ingested, analysis };
