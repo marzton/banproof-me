@@ -1,3 +1,4 @@
+// canonical deploy file for root worker/assets
 // banproof-me — KEEP + add Workflow for content/media/AI sentiment processing
 {
   "name": "banproof-me",
