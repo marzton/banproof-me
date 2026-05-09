@@ -1,3 +1,4 @@
+# canonical deploy file for gateway
 name                = "banproof-me"
 main                = "src/index.ts"
 compatibility_date  = "2026-04-01"
@@ -9,15 +10,7 @@ USE_MOCK    = "true"
 CF_ACCESS_AUDIENCE = "18f2fecc663c66d5de8fd7b6c08def28b0496216669af44abf51ac221b6b40e5"
 
 [[routes]]
-pattern   = "api.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
 pattern   = "admin.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "preview.banproof.me/*"
 zone_name = "banproof.me"
 
 [[routes]]
@@ -25,20 +18,8 @@ pattern   = "api.banproof.me/*"
 zone_name = "banproof.me"
 
 [[routes]]
-pattern   = "admin.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
 pattern   = "preview.banproof.me/*"
 zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "rmarston.com/api/*"
-zone_name = "rmarston.com"
-
-[[routes]]
-pattern   = "rmarston.com/admin/*"
-zone_name = "rmarston.com"
 
 [observability]
 enabled = true
@@ -216,18 +197,6 @@ max_batch_timeout = 30
 [[queues.producers]]
 binding = "MAIL_QUEUE"
 queue = "gs-mail-jobs"
-[[services]]
-binding = "SECURITY"
-service = "banproof-me"
-
-[[services]]
-binding = "SIGNALS"
-service = "gs-signals-prod"
-
-[[queues.producers]]
-binding = "MAIL_QUEUE"
-queue = "gs-mail-jobs"
-
 [[services]]
 binding = "SECURITY"
 service = "banproof-me"
