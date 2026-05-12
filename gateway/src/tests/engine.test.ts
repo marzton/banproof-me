@@ -208,30 +208,30 @@ describe('rateLimiter middleware', () => {
   });
 
   it('free tier returns 429 on the 11th request', async () => {
-    const rig = buildRateLimitApp();
+    const rig1 = buildRateLimitApp();
     for (let i = 0; i < 10; i++) {
-      await rig.app.fetch(
+      await rig1.app.fetch(
         new Request('http://localhost/api/pro/analyze', {
           method: 'POST',
           body:   '{}',
           headers: { 'X-User-Id': 'free-user2', 'X-User-Tier': 'free' },
         }),
-        { CACHE: rig.kv, DB: rig.db } as any,
-        rig.ctx,
+        { CACHE: rig1.kv, DB: rig1.db } as any,
+        rig1.ctx,
       );
     }
     const minuteTs = Math.floor(vi.getMockedSystemTime()!.getTime() / 60_000);
     const key = `ratelimit:free-user:${minuteTs}`;
     // Pre-populate KV to simulate 9 already consumed
-    const rig = buildRateLimitApp({ [key]: '9' });
-    const res = await rig.app.fetch(
+    const rig2 = buildRateLimitApp({ [key]: '9' });
+    const res = await rig2.app.fetch(
       new Request('http://localhost/api/pro/analyze', {
         method: 'POST',
         body:   '{}',
         headers: { 'X-User-Id': 'free-user', 'X-User-Tier': 'free' },
       }),
-      { CACHE: rig.kv, DB: rig.db } as any,
-      rig.ctx,
+      { CACHE: rig2.kv, DB: rig2.db } as any,
+      rig2.ctx,
     );
     expect(res.status).toBe(200);
     expect(res.headers.get('X-RateLimit-Remaining')).toBe('0');
