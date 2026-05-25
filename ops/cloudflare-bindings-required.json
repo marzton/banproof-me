@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "targets": {
+    "banproof-me": {
+      "manifest": "wrangler.jsonc",
+      "environments": {
+        "default": {
+          "required": {
+            "d1": [
+              "PLATFORM_DB",
+              "AUDIT_DB"
+            ],
+            "kv": [
+              "GS_CONFIG"
+            ],
+            "r2": [
+              "MEDIA_STORE",
+              "USER_UPLOADS"
+            ],
+            "workflows": [
+              "CONTENT_WORKFLOW"
+            ],
+            "queues": [
+              "GS_EVENTS"
+            ],
+            "vars": [
+              "ENV"
+            ],
+            "secrets": []
+          }
+        }
+      }
+    },
+    "banproof-core": {
+      "manifest": "gateway/wrangler.toml",
+      "environments": {
+        "default": {
+          "required": {
+            "d1": [
+              "DB"
+            ],
+            "kv": [
+              "CACHE",
+              "INFRA_SECRETS"
+            ],
+            "r2": [
+              "STORAGE"
+            ],
+            "service": [
+              "WORKFLOW",
+              "EMAIL_ROUTER"
+            ],
+            "send_email": [
+              "SEND_EMAIL"
+            ],
+            "workflows": [
+              "ENGINE",
+              "PURCHASE_WORKFLOW"
+            ],
+            "queues": [
+              "QUEUE"
+            ],
+            "vars": [
+              "ENVIRONMENT",
+              "USE_MOCK",
+              "CF_ACCESS_AUDIENCE"
+            ],
+            "secrets": []
+          }
+        },
+        "development": {
+          "required": {
+            "d1": [
+              "DB"
+            ],
+            "kv": [
+              "CACHE",
+              "INFRA_SECRETS"
+            ],
+            "r2": [
+              "STORAGE"
+            ],
+            "service": [
+              "WORKFLOW",
+              "EMAIL_ROUTER"
+            ],
+            "workflows": [
+              "ENGINE",
+              "PURCHASE_WORKFLOW"
+            ],
+            "queues": [
+              "QUEUE"
+            ],
+            "vars": [
+              "ENVIRONMENT",
+              "USE_MOCK",
+              "CF_ACCESS_AUDIENCE",
+              "TRUSTED_ADMIN_IPS"
+            ]
+          }
+        },
+        "staging": {
+          "required": {
+            "d1": [
+              "DB"
+            ],
+            "kv": [
+              "CACHE",
+              "INFRA_SECRETS"
+            ],
+            "r2": [
+              "STORAGE"
+            ],
+            "service": [
+              "WORKFLOW",
+              "EMAIL_ROUTER"
+            ],
+            "workflows": [
+              "ENGINE",
+              "PURCHASE_WORKFLOW"
+            ],
+            "queues": [
+              "QUEUE"
+            ],
+            "vars": [
+              "ENVIRONMENT",
+              "USE_MOCK"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
