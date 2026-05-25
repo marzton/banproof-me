@@ -4,8 +4,8 @@ export const handleSendEmail: JobHandler<SendEmailPayload> = async (
   payload,
   env,
 ) => {
-  if (!env.EMAIL_ROUTER) {
-    throw new Error('EMAIL_ROUTER binding is missing');
+  if (!env.EMAIL_ROUTER || typeof env.EMAIL_ROUTER.fetch !== 'function') {
+    throw new Error('EMAIL_ROUTER binding is missing or invalid');
   }
 
   const response = await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
