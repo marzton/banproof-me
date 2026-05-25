@@ -192,6 +192,34 @@ describe('rateLimiter middleware', () => {
   });
 
   it('free tier allows up to 10 requests', async () => {
+    const rig = buildRateLimitApp();
+    for (let i = 0; i < 10; i++) {
+      const res = await rig.app.fetch(
+        new Request('http://localhost/api/pro/analyze', {
+          method: 'POST',
+          body:   '{}',
+          headers: { 'X-User-Id': 'free-user', 'X-User-Tier': 'free' },
+        }),
+        { CACHE: rig.kv, DB: rig.db } as any,
+        rig.ctx,
+      );
+      expect(res.status).toBe(200);
+    }
+  });
+
+  it('free tier returns 429 on the 11th request', async () => {
+    const rig = buildRateLimitApp();
+    for (let i = 0; i < 10; i++) {
+      await rig.app.fetch(
+        new Request('http://localhost/api/pro/analyze', {
+          method: 'POST',
+          body:   '{}',
+          headers: { 'X-User-Id': 'free-user2', 'X-User-Tier': 'free' },
+        }),
+        { CACHE: rig.kv, DB: rig.db } as any,
+        rig.ctx,
+      );
+    }
     const minuteTs = Math.floor(vi.getMockedSystemTime()!.getTime() / 60_000);
     const key = `ratelimit:free-user:${minuteTs}`;
     // Pre-populate KV to simulate 9 already consumed
