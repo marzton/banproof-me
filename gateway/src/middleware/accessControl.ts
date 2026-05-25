@@ -179,7 +179,10 @@ export const accessControlMiddleware: MiddlewareHandler<{
       if (!trustedIps.includes(ipAddress)) {
       const adminIps =
         c.env.TRUSTED_ADMIN_IPS ?? getDefaultTrustedIps(c.env.CF_ACCESS_AUDIENCE).join(',');
-      const adminTrustedIps = adminIps.split(',').map((ip: string) => ip.trim());
+      const adminTrustedIps = adminIps
+        .split(',')
+        .map((ip: string) => ip.trim())
+        .filter(Boolean);
 
       if (!adminTrustedIps.includes(ipAddress)) {
         console.warn(
