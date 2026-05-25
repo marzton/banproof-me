@@ -220,6 +220,28 @@ describe('rateLimiter middleware', () => {
         rig.ctx,
       );
     }
+    const minuteTs = Math.floor(vi.getMockedSystemTime()!.getTime() / 60_000);
+    const key = `ratelimit:free-user:${minuteTs}`;
+    // Pre-populate KV to simulate 9 already consumed
+    const rig = buildRateLimitApp({ [key]: '9' });
+    const res = await rig.app.fetch(
+      new Request('http://localhost/api/pro/analyze', {
+        method: 'POST',
+        body:   '{}',
+        headers: { 'X-User-Id': 'free-user', 'X-User-Tier': 'free' },
+      }),
+      { CACHE: rig.kv, DB: rig.db } as any,
+      rig.ctx,
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get('X-RateLimit-Remaining')).toBe('0');
+  });
+
+  it('free tier returns 429 on the 11th request', async () => {
+    const minuteTs = Math.floor(vi.getMockedSystemTime()!.getTime() / 60_000);
+    const key = `ratelimit:free-user2:${minuteTs}`;
+    // Pre-populate KV to simulate 10 already consumed
+    const rig = buildRateLimitApp({ [key]: '10' });
     const res = await rig.app.fetch(
       new Request('http://localhost/api/pro/analyze', {
         method: 'POST',
