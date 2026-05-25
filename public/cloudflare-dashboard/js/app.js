@@ -22,12 +22,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const li = document.createElement('li');
         li.className = 'log-item';
         
-        li.innerHTML = `
-            <span class="log-time">${timeStr}</span>
-            <span class="log-ip">${ip} ${isVerified ? '(DePIN)' : '(Datacenter)'}</span>
-            <span class="badge ${isVerified ? 'success' : 'danger'}">${isVerified ? 'Verified' : 'Rejected'}</span>
-            <span class="log-msg">${msg}</span>
-        `;
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'log-time';
+        timeSpan.textContent = timeStr;
+
+        const ipSpan = document.createElement('span');
+        ipSpan.className = 'log-ip';
+        ipSpan.textContent = `${ip} ${isVerified ? '(DePIN)' : '(Datacenter)'}`;
+
+        const badgeSpan = document.createElement('span');
+        badgeSpan.className = `badge ${isVerified ? 'success' : 'danger'}`;
+        badgeSpan.textContent = isVerified ? 'Verified' : 'Rejected';
+
+        const msgSpan = document.createElement('span');
+        msgSpan.className = 'log-msg';
+        msgSpan.textContent = msg;
+
+        li.append(timeSpan, ipSpan, badgeSpan, msgSpan);
         
         // Prepend and limit to 10 logs
         logList.insertBefore(li, logList.firstChild);

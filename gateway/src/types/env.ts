@@ -27,6 +27,10 @@ export type Bindings = {
   WORKFLOW:          Fetcher;
   /** Service binding → banproof-email-router */
   EMAIL_ROUTER:      Fetcher;
+  /** direct email binding */
+  SEND_EMAIL?:       { send: (msg: any) => Promise<void> };
+  /** Analytics Engine */
+  ANALYTICS?:        { write: (data: any) => void };
   /** Queue producer → goldshore-jobs */
   QUEUE:             Queue<QueueJobMessage>;
 
@@ -42,4 +46,12 @@ export type Variables = {
   accessContext?: AccessContext;
   // userId is set by tollBooth but seemingly unused downstream as a Hono variable
   userId?:        string;
+};
+
+export type EmailPayload = {
+  to: string;
+  subject: string;
+  body: string;
+  correlationId?: string;
+  triggeredBy?: string;
 };
