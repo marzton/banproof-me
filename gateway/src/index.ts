@@ -251,6 +251,7 @@ export default {
         const { type, payload } = message.body;
 
         try {
+          const { type, payload } = message.body;
           const correlationId =
             payload &&
             typeof payload === 'object' &&
@@ -258,6 +259,7 @@ export default {
             (typeof payload.correlationId === 'string' || typeof payload.correlationId === 'number')
               ? String(payload.correlationId)
               : undefined;
+
           console.log(`[Queue] Processing job: ${type}`, { correlationId });
 
           // Record event in analytics if available
@@ -269,6 +271,7 @@ export default {
           }
 
           await handleJob(type, payload, env);
+
           message.ack();
         } catch (err) {
           console.error(`[Queue] Job failed: ${type}`, err);
