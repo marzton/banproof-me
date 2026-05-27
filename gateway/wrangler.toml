@@ -13,17 +13,6 @@ pattern   = "admin.banproof.me/*"
 zone_name = "banproof.me"
 
 [[routes]]
-<<<<<<< HEAD
-=======
-pattern   = "api.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "preview.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 pattern   = "api.banproof.me/*"
 zone_name = "banproof.me"
 
@@ -210,11 +199,3 @@ queue = "gs-mail-jobs"
 [[services]]
 binding = "SECURITY"
 service = "banproof-me"
-
-[[services]]
-binding = "SIGNALS"
-<<<<<<< HEAD
-service = "gs-signals-prod"
-=======
-service = "gs-signals-prod"
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
