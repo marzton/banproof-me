@@ -199,7 +199,3 @@ queue = "gs-mail-jobs"
 [[services]]
 binding = "SECURITY"
 service = "banproof-me"
-
-[[services]]
-binding = "SIGNALS"
-service = "gs-signals-prod"
