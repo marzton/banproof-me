@@ -410,22 +410,6 @@ export default {
                 body: JSON.stringify(payload),
               });
               break;
-
-            case 'sync_user':
-              // Logic for user synchronization could go here
-              break;
-
-            default:
-              console.warn(`[Queue] Unhandled job type: ${type}`);
-          }
-
-          message.ack();
-        } catch (err) {
-          console.error('[Queue] Error processing message:', err);
-          message.retry();
-        }
-      })
-    );
             }
 
             case 'sync_user': {
