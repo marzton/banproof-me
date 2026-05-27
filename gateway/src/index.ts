@@ -19,6 +19,10 @@ import type { Bindings, Variables, QueueJobMessage } from './types/env.js';
 import { SentimentWorkflow } from './workflows/sentimentWorkflow.js';
 import adminEmailRoutes from './routes/adminEmail.js';
 import { failSafeMiddleware } from './middleware/failSafe.js';
+<<<<<<< HEAD
+import { handleJob } from './jobs/index.js';
+=======
+>>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 
 
 
@@ -247,6 +251,9 @@ export default {
   ): Promise<void> {
     await Promise.allSettled(
       batch.messages.map(async (message) => {
+<<<<<<< HEAD
+        const { type, payload } = message.body;
+=======
         try {
           // TODO: dispatch message.body.type to the appropriate handler.
           const { type, payload } = message.body;
@@ -331,15 +338,21 @@ export default {
             ? String(payload.correlationId)
             : undefined;
         console.log(`[Queue] Processing job: ${type}`, { correlationId });
+>>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 
-        // Record event in analytics if available
-        if (env.ANALYTICS) {
-          env.ANALYTICS.write({
-            doubles: [1],
-            blobs: [type, JSON.stringify(payload)],
-          });
-        }
+        try {
+          const { type, payload } = message.body;
+          const correlationId =
+            payload &&
+            typeof payload === 'object' &&
+            'correlationId' in payload &&
+            (typeof payload.correlationId === 'string' || typeof payload.correlationId === 'number')
+              ? String(payload.correlationId)
+              : undefined;
 
+<<<<<<< HEAD
+          console.log(`[Queue] Processing job: ${type}`, { correlationId });
+=======
         switch (type) {
           case 'tier_upgraded': {
             if (env.DISCORD_WEBHOOK) {
@@ -356,32 +369,24 @@ export default {
             }
             break;
           }
+>>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 
-          case 'send_email': {
-            if (!env.EMAIL_ROUTER) {
-              throw new Error('EMAIL_ROUTER binding is missing');
-            }
-            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
+          // Record event in analytics if available
+          if (env.ANALYTICS) {
+            env.ANALYTICS.write({
+              doubles: [1],
+              blobs: [type, JSON.stringify(payload)],
             });
-            break;
           }
 
-          case 'sync_user': {
-            // Logic for user synchronization could go here
-            break;
-          }
+          await handleJob(type, payload, env);
 
-          default:
-            console.warn(`[Queue] Unknown job type: ${type}`);
+          message.ack();
+        } catch (err) {
+          console.error(`[Queue] Job failed: ${type}`, err);
+          message.retry();
         }
-
-        message.ack();
-      } catch {
-        message.retry();
-      }
-    }
+      }),
+    );
   },
 };
