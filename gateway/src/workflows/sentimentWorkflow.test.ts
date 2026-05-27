@@ -33,7 +33,7 @@ describe('workflows/SentimentWorkflow', () => {
     });
   });
 
-  it('uses live API and maps POS labels to BULLISH', async () => {
+  it('uses live API and maps POSITIVE labels to BULLISH', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify([[
       { label: 'POSITIVE', score: 0.91 },
     ]]), { status: 200 })));
@@ -47,7 +47,7 @@ describe('workflows/SentimentWorkflow', () => {
     expect(result.sentiment.source).toBe('REAL_HF');
   });
 
-  it('maps non-POS labels to BEARISH and handles empty model responses', async () => {
+  it('maps non-POSITIVE labels to BEARISH and handles empty model responses', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(new Response(JSON.stringify([[
       { label: 'NEGATIVE', score: 0.66 },
     ]]), { status: 200 })).mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 })));
