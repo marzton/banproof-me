@@ -248,6 +248,8 @@ export default {
   ): Promise<void> {
     await Promise.allSettled(
       batch.messages.map(async (message) => {
+        const { type, payload } = message.body;
+
         try {
           const { type, payload } = message.body;
           const correlationId =
