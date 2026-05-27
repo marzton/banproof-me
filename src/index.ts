@@ -144,7 +144,8 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
         try {
           parsed = JSON.parse(content)
         } catch (error) {
-          throw new Error('OpenAI response was not valid JSON', { cause: error })
+          const reason = error instanceof Error ? error.message : String(error)
+          throw new Error(`OpenAI response was not valid JSON: ${reason}`)
         }
 
         if (!parsed || typeof parsed !== 'object') {
