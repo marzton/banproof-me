@@ -19,6 +19,7 @@ import type { Bindings, Variables, QueueJobMessage } from './types/env.js';
 import { SentimentWorkflow } from './workflows/sentimentWorkflow.js';
 import adminEmailRoutes from './routes/adminEmail.js';
 import { failSafeMiddleware } from './middleware/failSafe.js';
+import { handleJob } from './jobs/index.js';
 
 
 
@@ -248,7 +249,6 @@ export default {
     await Promise.allSettled(
       batch.messages.map(async (message) => {
         try {
-          // TODO: dispatch message.body.type to the appropriate handler.
           const { type, payload } = message.body;
           const correlationId =
             payload &&
@@ -257,6 +257,7 @@ export default {
             (typeof payload.correlationId === 'string' || typeof payload.correlationId === 'number')
               ? String(payload.correlationId)
               : undefined;
+
           console.log(`[Queue] Processing job: ${type}`, { correlationId });
 
           // Record event in analytics if available
@@ -383,5 +384,14 @@ export default {
         message.retry();
       }
     }
+          await handleJob(type, payload, env);
+
+          message.ack();
+        } catch (err) {
+          console.error(`[Queue] Job failed: ${type}`, err);
+          message.retry();
+        }
+      }),
+    );
   },
 };
