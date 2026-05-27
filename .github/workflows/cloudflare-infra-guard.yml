@@ -15,6 +15,10 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: test -n "$CLOUDFLARE_API_TOKEN" || (echo "Missing CLOUDFLARE_API_TOKEN" && exit 1)
+      - name: Static route validator
+        run: python check_routes.py
+      - name: Static bindings validator
+        run: python scripts/validate_cloudflare_manifests.py
       - name: Validate routes and DNS
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
