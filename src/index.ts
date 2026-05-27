@@ -327,6 +327,18 @@ async function handlePoAStatus(jobId: string, env: Env): Promise<Response> {
 // ---------------------------------------------------------------------------
 
 export default {
+  async fetch(request: Request): Promise<Response> {
+    const { pathname } = new URL(request.url)
+
+    if (pathname === '/health') {
+      return new Response('ok', { status: 200 })
+    }
+
+    return new Response('banproof-me worker online', {
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    })
+  },
+}
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
     const { pathname, method } = url
@@ -396,8 +408,24 @@ export default {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
-              })
-              break
+              });
+              break;
+
+            case 'sync_user':
+              // Logic for user synchronization could go here
+              break;
+
+            default:
+              console.warn(`[Queue] Unhandled job type: ${type}`);
+          }
+
+          message.ack();
+        } catch (err) {
+          console.error('[Queue] Error processing message:', err);
+          message.retry();
+        }
+      })
+    );
             }
 
             case 'sync_user': {
