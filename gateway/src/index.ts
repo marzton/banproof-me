@@ -19,6 +19,7 @@ import type { Bindings, Variables, QueueJobMessage } from './types/env.js';
 import { SentimentWorkflow } from './workflows/sentimentWorkflow.js';
 import adminEmailRoutes from './routes/adminEmail.js';
 import { failSafeMiddleware } from './middleware/failSafe.js';
+import { handleJob } from './jobs/index.js';
 
 
 
@@ -245,59 +246,35 @@ export default {
     batch: MessageBatch<QueueJobMessage>,
     env: Bindings,
   ): Promise<void> {
-    for (const message of batch.messages) {
-      try {
-        // TODO: dispatch message.body.type to the appropriate handler.
+    await Promise.allSettled(
+      batch.messages.map(async (message) => {
         const { type, payload } = message.body;
-        console.log(`[Queue] Processing job: ${type}`, payload);
 
-        // Record event in analytics if available
-        if (env.ANALYTICS) {
-          env.ANALYTICS.write({
-            doubles: [1],
-            blobs: [type, JSON.stringify(payload)],
-          });
-        }
+        try {
+          const correlationId =
+            payload &&
+            typeof payload === 'object' &&
+            'correlationId' in payload &&
+            (typeof payload.correlationId === 'string' || typeof payload.correlationId === 'number')
+              ? String(payload.correlationId)
+              : undefined;
+          console.log(`[Queue] Processing job: ${type}`, { correlationId });
 
-        switch (type) {
-          case 'tier_upgraded': {
-            if (env.DISCORD_WEBHOOK) {
-              await fetch(env.DISCORD_WEBHOOK, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
-                }),
-              });
-            }
-            break;
-          }
-
-          case 'send_email': {
-            if (!env.EMAIL_ROUTER) {
-              throw new Error('EMAIL_ROUTER binding is missing');
-            }
-            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
+          // Record event in analytics if available
+          if (env.ANALYTICS) {
+            env.ANALYTICS.write({
+              doubles: [1],
+              blobs: [type, JSON.stringify(payload)],
             });
-            break;
           }
 
-          case 'sync_user': {
-            // Logic for user synchronization could go here
-            break;
-          }
-
-          default:
-            console.warn(`[Queue] Unknown job type: ${type}`);
+          await handleJob(type, payload, env);
+          message.ack();
+        } catch (err) {
+          console.error(`[Queue] Job failed: ${type}`, err);
+          message.retry();
         }
-
-        message.ack();
-      } catch {
-        message.retry();
-      }
-    }
+      }),
+    );
   },
 };
