@@ -144,7 +144,8 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
         try {
           parsed = JSON.parse(content)
         } catch (error) {
-          throw new Error('OpenAI response was not valid JSON')
+          const reason = error instanceof Error ? error.message : String(error)
+          throw new Error(`OpenAI response was not valid JSON: ${reason}`)
         }
 
         if (!parsed || typeof parsed !== 'object') {
@@ -327,12 +328,11 @@ async function handlePoAStatus(jobId: string, env: Env): Promise<Response> {
 // ---------------------------------------------------------------------------
 
 export default {
-  async fetch(request: Request): Promise<Response> {
-    const { pathname } = new URL(request.url)
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url)
+    const { pathname, method } = url
 
-    if (pathname === '/health') {
-      return new Response('ok', { status: 200 })
-    }
+    if (method === 'OPTIONS') return handleCorsPreFlight()
 
     return new Response('banproof-me worker online', {
       headers: { 'content-type': 'text/plain; charset=utf-8' },
@@ -408,24 +408,8 @@ export default {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
-              });
-              break;
-
-            case 'sync_user':
-              // Logic for user synchronization could go here
-              break;
-
-            default:
-              console.warn(`[Queue] Unhandled job type: ${type}`);
-          }
-
-          message.ack();
-        } catch (err) {
-          console.error('[Queue] Error processing message:', err);
-          message.retry();
-        }
-      })
-    );
+              })
+              break
             }
 
             case 'sync_user': {
