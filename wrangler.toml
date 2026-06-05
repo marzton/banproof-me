@@ -1,35 +1,16 @@
 name                = "banproof-core"
-main                = "src/index.ts"
+main                = "gateway/src/index.ts"
 compatibility_date  = "2026-04-01"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
 ENVIRONMENT = "production"
-USE_MOCK    = "true"
-CF_ACCESS_AUDIENCE = "18f2fecc663c66d5de8fd7b6c08def28b0496216669af44abf51ac221b6b40e5"
 
-[[routes]]
-pattern   = "admin.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "api.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "preview.banproof.me/*"
-zone_name = "banproof.me"
-
-[observability]
-enabled = true
-
-# ── D1 Database (binding: DB) ───────────────────────────────
 [[d1_databases]]
 binding       = "DB"
 database_name = "bp-core-prod"
 database_id   = "54e1a408-4b81-4ca5-b6a4-c2314dc0cf46"
 
-# ── KV Namespaces ──────────────────────────────────────────────
 [[kv_namespaces]]
 binding = "CACHE"
 id      = "af8eb071fce34b5eafbdeb1badd93876"
@@ -37,115 +18,3 @@ id      = "af8eb071fce34b5eafbdeb1badd93876"
 [[kv_namespaces]]
 binding = "INFRA_SECRETS"
 id      = "b9824d3280c54573a24137c7e7143b33"
-
-# ── R2 Object Storage (binding: STORAGE) ─────────────────────────
-[[r2_buckets]]
-binding     = "STORAGE"
-bucket_name = "banproof-storage"
-
-# ── Cloudflare Workflows (binding: ENGINE) ───────────────────────
-[[workflows]]
-binding    = "ENGINE"
-name       = "banproof-engine"
-class_name = "BanproofEngine"
-
-[[workflows]]
-binding    = "PURCHASE_WORKFLOW"
-name       = "subscription-purchase"
-class_name = "SubscriptionPurchaseWorkflow"
-
-# ── Cloudflare AI (binding: AI) ────────────────────────────────
-[ai]
-binding = "AI"
-
-# ── Service Bindings ─────────────────────────────────────────────
-[[services]]
-binding = "WORKFLOW"
-service = "saas-admin-template-customer-workflow"
-
-[[services]]
-binding = "EMAIL_ROUTER"
-service = "banproof-email-router"
-
-# ── Analytics Engine ─────────────────────────────────────────────
-[[analytics_engine_datasets]]
-binding = "ANALYTICS"
-dataset = "banproof_events"
-
-# ── Email Routing ───────────────────────────────────────────────
-[[send_email]]
-name = "SEND_EMAIL"
-
-# ── Queue Producer (binding: QUEUE) ─────────────────────────────
-[[queues.producers]]
-binding = "QUEUE"
-queue   = "goldshore-jobs"
-
-[[queues.producers]]
-binding = "MAIL_QUEUE"
-queue = "gs-mail-jobs"
-
-# ── Queue Consumer ───────────────────────────────────────────────
-[[queues.consumers]]
-queue             = "goldshore-jobs"
-max_batch_size    = 10
-max_batch_timeout = 30
-
-# ── Staging environment ───────────────────────────────────────────
-[env.staging]
-vars = { ENVIRONMENT = "staging", USE_MOCK = "true" }
-
-[[env.staging.routes]]
-pattern   = "staging-api.banproof.me/api/*"
-zone_name = "banproof.me"
-
-[[env.staging.d1_databases]]
-binding       = "DB"
-database_name = "bp-core-prod"
-database_id   = "54e1a408-4b81-4ca5-b6a4-c2314dc0cf46"
-
-[[env.staging.kv_namespaces]]
-binding = "CACHE"
-id      = "af8eb071fce34b5eafbdeb1badd93876"
-
-[[env.staging.kv_namespaces]]
-binding = "INFRA_SECRETS"
-id      = "b9824d3280c54573a24137c7e7143b33"
-
-[[env.staging.r2_buckets]]
-binding     = "STORAGE"
-bucket_name = "banproof-storage"
-
-[[env.staging.workflows]]
-binding    = "ENGINE"
-name       = "banproof-engine"
-class_name = "BanproofEngine"
-
-[[env.staging.workflows]]
-binding    = "PURCHASE_WORKFLOW"
-name       = "subscription-purchase-staging"
-class_name = "SubscriptionPurchaseWorkflow"
-
-[env.staging.ai]
-binding = "AI"
-
-[[env.staging.services]]
-binding = "WORKFLOW"
-service = "saas-admin-template-customer-workflow"
-
-[[env.staging.services]]
-binding = "EMAIL_ROUTER"
-service = "banproof-email-router"
-
-[[env.staging.queues.producers]]
-binding = "QUEUE"
-queue   = "goldshore-jobs"
-
-[[env.staging.queues.consumers]]
-queue             = "goldshore-jobs"
-max_batch_size    = 10
-max_batch_timeout = 30
-
-[[env.staging.queues.producers]]
-binding = "MAIL_QUEUE"
-queue   = "gs-mail-jobs"
