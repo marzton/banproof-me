@@ -1,6 +1,6 @@
-name                = "banproof-core"
-main                = "gateway/src/index.ts"
-compatibility_date  = "2026-04-01"
+name = "banproof-me"
+main = "src/index.ts"
+compatibility_date = "2025-09-27"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
