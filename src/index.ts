@@ -334,6 +334,17 @@ export default {
 
     if (method === 'OPTIONS') return handleCorsPreFlight()
 
+    return new Response('banproof-me worker online', {
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    })
+  },
+}
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url)
+    const { pathname, method } = url
+
+    if (method === 'OPTIONS') return handleCorsPreFlight()
+
     if (pathname === '/health') {
       return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, CORS_HEADERS)
     }
