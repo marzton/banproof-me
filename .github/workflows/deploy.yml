@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: gateway/package-lock.json
 
@@ -43,6 +43,19 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: gateway
           command: ${{ github.ref == 'refs/heads/staging' && 'deploy --env staging' || 'deploy' }}
+
+      - name: Health check
+        run: |
+          HEALTH_URL="${{ vars.HEALTH_CHECK_URL }}"
+          if [ -n "$HEALTH_URL" ]; then
+            sleep 5
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL")
+            if [ "$STATUS" != "200" ]; then
+              echo "Health check failed: $STATUS"
+              exit 1
+            fi
+            echo "Health check passed: $STATUS"
+          fi
 
   verify-infra:
     name: Post-deploy infra verification
