@@ -144,7 +144,8 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
         try {
           parsed = JSON.parse(content)
         } catch (error) {
-          throw new Error('OpenAI response was not valid JSON', { cause: error })
+          const reason = error instanceof Error ? error.message : String(error)
+          throw new Error(`OpenAI response was not valid JSON: ${reason}`)
         }
 
         if (!parsed || typeof parsed !== 'object') {
@@ -333,6 +334,17 @@ export default {
 
     if (method === 'OPTIONS') return handleCorsPreFlight()
 
+    return new Response('banproof-me worker online', {
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    })
+  },
+}
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url)
+    const { pathname, method } = url
+
+    if (method === 'OPTIONS') return handleCorsPreFlight()
+
     if (pathname === '/health') {
       return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, CORS_HEADERS)
     }
@@ -396,8 +408,8 @@ export default {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
-              })
-              break
+              });
+              break;
             }
 
             case 'sync_user': {
