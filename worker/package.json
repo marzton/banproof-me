@@ -14,7 +14,7 @@
     "types":            "wrangler types --config wrangler.toml"
   },
   "dependencies": {
-    "hono": "^4.12.21"
+    "hono": "^4.12.22"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260401.1",
