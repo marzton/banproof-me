@@ -18,10 +18,17 @@ import adminRoutes     from './routes/admin.js';
 import type { Bindings, Variables, QueueJobMessage } from './types/env.js';
 import { SentimentWorkflow } from './workflows/sentimentWorkflow.js';
 import adminEmailRoutes from './routes/adminEmail.js';
+import { failSafeMiddleware } from './middleware/failSafe.js';
+import { handleJob } from './jobs/index.js';
+
+
+
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 // ── CORS middleware ───────────────────────────────────────────
+app.use('*', failSafeMiddleware);
+
 app.use(
   '/api/*',
   cors({
@@ -237,61 +244,77 @@ export default {
   // ── Queue consumer: goldshore-jobs ─────────────────────────
   async queue(
     batch: MessageBatch<QueueJobMessage>,
-    _env: Bindings,
+    env: Bindings,
   ): Promise<void> {
-    for (const message of batch.messages) {
-      try {
-        // TODO: dispatch message.body.type to the appropriate handler.
+    await Promise.allSettled(
+      batch.messages.map(async (message) => {
         const { type, payload } = message.body;
-        console.log(`[Queue] Processing job: ${type}`, payload);
 
-        // Record event in analytics if available
-        if (env.ANALYTICS) {
-          env.ANALYTICS.write({
-            doubles: [1],
-            blobs: [type, JSON.stringify(payload)],
-          });
-        }
+        try {
+          const { type, payload } = message.body;
+          const correlationId =
+            payload &&
+            typeof payload === 'object' &&
+            'correlationId' in payload &&
+            (typeof payload.correlationId === 'string' || typeof payload.correlationId === 'number')
+              ? String(payload.correlationId)
+              : undefined;
 
-        switch (type) {
-          case 'tier_upgraded': {
-            if (env.DISCORD_WEBHOOK) {
-              await fetch(env.DISCORD_WEBHOOK, {
+          console.log(`[Queue] Processing job: ${type}`, { correlationId });
+
+          // Record event in analytics if available
+          if (env.ANALYTICS) {
+            env.ANALYTICS.write({
+              doubles: [1],
+              blobs: [type, JSON.stringify(payload)],
+            });
+          }
+
+          switch (type) {
+            case 'tier_upgraded': {
+              if (env.DISCORD_WEBHOOK) {
+                const response = await fetch(env.DISCORD_WEBHOOK, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+                  }),
+                });
+                if (!response.ok) {
+                  throw new Error(`Discord webhook failed with status ${response.status}`);
+                }
+              }
+              break;
+            }
+
+            case 'send_email': {
+              if (!env.EMAIL_ROUTER) {
+                throw new Error('EMAIL_ROUTER binding is missing');
+              }
+              await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
-                }),
+                body: JSON.stringify(payload),
               });
+              break;
             }
-            break;
-          }
 
-          case 'send_email': {
-            if (!env.EMAIL_ROUTER) {
-              throw new Error('EMAIL_ROUTER binding is missing');
+            case 'sync_user': {
+              // Logic for user synchronization could go here
+              break;
             }
-            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
-            break;
-          }
 
-          case 'sync_user': {
-            // Logic for user synchronization could go here
-            break;
+            default:
+              console.warn(`[Queue] Unknown job type: ${type}`);
           }
+          await handleJob(type, payload, env);
 
-          default:
-            console.warn(`[Queue] Unknown job type: ${type}`);
+          message.ack();
+        } catch (err) {
+          console.error(`[Queue] Job failed: ${type}`, err);
+          message.retry();
         }
-
-        message.ack();
-      } catch {
-        message.retry();
-      }
-    }
+      }),
+    );
   },
 };

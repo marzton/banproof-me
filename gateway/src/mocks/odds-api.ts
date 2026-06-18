@@ -8,6 +8,7 @@ const BASE_BOOKMAKERS: Array<Omit<Bookmaker, 'value'>> = [
   { name: 'DraftKings', price: -110, spread: -1.5 },
   { name: 'FanDuel',    price: -115, spread: -1.5 },
   { name: 'BetMGM',     price: -108, spread: -1.5 },
+  { name: 'Caesars',    price: -110, spread: -1.5 },
 ];
 
 function jitter(base: number): number {

@@ -1,0 +1,9 @@
+name = "gs-core-worker"
+main = "src/index.ts"
+compatibility_date = "2025-09-27"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "SIGNALS_DB"
+database_name = "gs_signals_db"
+database_id = "76af4653-7f44-417b-b46e-250143d906fd"
