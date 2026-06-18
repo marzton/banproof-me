@@ -156,7 +156,7 @@ admin.post('/inquiries/:inquiryId/quote', async (c) => {
   ]);
 
   // Notify via console (Discord/email wired in engine step)
-  console.log(`[Admin] Quote sent to ${inquiry.email} for ${inquiry.company}: ${quote}`);
+  console.log(`[Admin] Quote sent for inquiryId=${inquiryId}`);
 
   return c.json({ ok: true, inquiryId, status: 'quoted' });
 });
