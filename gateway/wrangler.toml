@@ -13,17 +13,6 @@ pattern   = "admin.banproof.me/*"
 zone_name = "banproof.me"
 
 [[routes]]
-<<<<<<< HEAD
-=======
-pattern   = "api.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
-pattern   = "preview.banproof.me/*"
-zone_name = "banproof.me"
-
-[[routes]]
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 pattern   = "api.banproof.me/*"
 zone_name = "banproof.me"
 
@@ -79,6 +68,13 @@ binding = "EMAIL_ROUTER"
 service = "banproof-email-router"
 
 # ── Analytics Engine ──────────────────────────────────────────
+# Disabled until gateway runtime is updated to use the
+# Analytics Engine dataset API (`writeDataPoint(...)`) instead of
+# `env.ANALYTICS.write(...)`.
+#
+# [[analytics_engine_datasets]]
+# binding = "ANALYTICS"
+# dataset = "banproof_events"
 [[analytics_engine_datasets]]
 binding = "ANALYTICS"
 dataset = "banproof_events"
@@ -213,8 +209,4 @@ service = "banproof-me"
 
 [[services]]
 binding = "SIGNALS"
-<<<<<<< HEAD
 service = "gs-signals-prod"
-=======
-service = "gs-signals-prod"
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22

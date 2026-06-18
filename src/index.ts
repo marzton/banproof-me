@@ -4,8 +4,6 @@ import {
   WorkflowStep,
 } from 'cloudflare:workers'
 
-<<<<<<< HEAD
-=======
 type ContentProcessingParams = {
   contentId?: string
   source?: string
@@ -32,7 +30,6 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint {
       status: 'completed',
       contentId: payload.contentId,
     }
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 /**
  * banproof-me — Proof of Agency gateway + content processing
  *
@@ -54,47 +51,6 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint {
 
 export interface Env {
   // Static assets
-<<<<<<< HEAD
-  ASSETS: Fetcher
-
-  // KV
-  GS_CONFIG: KVNamespace
-
-  // D1
-  PLATFORM_DB: D1Database
-  AUDIT_DB: D1Database
-
-  // R2
-  MEDIA_STORE: R2Bucket
-
-  // Workflow
-  CONTENT_WORKFLOW: Workflow
-
-  // Queue (producer)
-  GS_EVENTS: Queue<QueueJobMessage>
-
-  // Service bindings (optional — not guaranteed in all environments)
-  EMAIL_ROUTER?: Fetcher
-
-  // Email binding
-  SEND_EMAIL?: SendEmail
-
-  // Analytics Engine
-  ANALYTICS?: AnalyticsEngineDataset
-
-  // Env vars
-  ENV: string
-  POA_TOKEN: string
-  AUDIT_TOKEN: string
-  OPENAI_API_KEY?: string
-  DISCORD_WEBHOOK?: string
-}
-
-/** Shape of messages pushed to / consumed from the goldshore-jobs queue */
-type QueueJobMessage = {
-  type: 'tier_upgraded' | 'send_email' | 'sync_user' | string
-  payload: Record<string, unknown>
-=======
   ASSETS: Fetcher;
 
   // KV
@@ -130,7 +86,6 @@ type QueueJobMessage = {
   AUDIT_TOKEN: string;
   OPENAI_API_KEY?: string;
   DISCORD_WEBHOOK?: string;
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 }
 
 /** Shape of messages pushed to / consumed from the goldshore-jobs queue */
@@ -163,8 +118,6 @@ type WorkflowResult = {
 // Workflow — durable AI/sentiment processing pipeline
 // ---------------------------------------------------------------------------
 
-<<<<<<< HEAD
-=======
 type SentimentResult = {
   sentiment: 'positive' | 'neutral' | 'negative';
   score: number;
@@ -175,7 +128,6 @@ type SentimentResult = {
 // Workflow — durable AI/sentiment processing pipeline
 // ---------------------------------------------------------------------------
 
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
   async run(
     event: WorkflowEvent<WorkflowParams>,
@@ -183,11 +135,8 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
   ): Promise<WorkflowResult> {
     const { jobId, contentType, payload } = event.payload
 
-<<<<<<< HEAD
-=======
     // Step 1: Ingest and validate content
     // Step 1: Ingest and validate
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
     const ingested = await step.do('ingest', async () => {
       return {
         jobId,
@@ -263,8 +212,6 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
       }
     )
 
-<<<<<<< HEAD
-=======
     // Step 3: Write Proof of Agency record to D1
     // Step 2: AI sentiment analysis via OpenAI
     const analysis = await step.do<SentimentResult | { score: null; reason: string }>(
@@ -305,7 +252,6 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
     );
 
     // Step 3: Write Proof of Agency record to AUDIT_DB
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
     await step.do('poa-record', async () => {
       await this.env.AUDIT_DB.prepare(
         `INSERT OR IGNORE INTO worker_audit (id, ts, worker, action, result, detail)
@@ -323,15 +269,7 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
 // Helpers
 // ---------------------------------------------------------------------------
 
-<<<<<<< HEAD
-function json(
-  data: unknown,
-  status = 200,
-  extraHeaders: Record<string, string> = {}
-): Response {
-=======
 function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}): Response {
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
   return new Response(JSON.stringify(data), {
     status,
     headers: {
@@ -339,41 +277,24 @@ function json(data: unknown, status = 200, extraHeaders: Record<string, string> 
       'Cache-Control': 'no-store',
       ...extraHeaders,
     },
-<<<<<<< HEAD
-  })
-=======
   });
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 }
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': 'https://banproof.me',
-<<<<<<< HEAD
-  Vary: 'Origin',
-}
-=======
   'Vary': 'Origin',
 };
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 
 function handleCorsPreFlight(): Response {
   return new Response(null, {
     status: 204,
     headers: {
-<<<<<<< HEAD
-      ...CORS_HEADERS,
-=======
       'Access-Control-Allow-Origin': 'https://banproof.me',
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
     },
-<<<<<<< HEAD
-  })
-=======
   });
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 }
 
 // ---------------------------------------------------------------------------
@@ -386,7 +307,6 @@ async function handleContactForm(request: Request, env: Env): Promise<Response> 
     return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS)
   }
 
-<<<<<<< HEAD
   let fd: FormData
   try {
     fd = await request.formData()
@@ -414,52 +334,10 @@ async function handleContactForm(request: Request, env: Env): Promise<Response> 
   const id = crypto.randomUUID()
   const ip = request.headers.get('CF-Connecting-IP') ?? null
 
-=======
-  let fd: FormData;
-  try { fd = await request.formData(); }
-  catch { return json({ ok: false, error: 'Invalid form data' }, 400); }
-  if (request.method === 'OPTIONS') return handleCorsPreFlight();
-  if (request.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS);
-
-  let fd: FormData;
-  try {
-    fd = await request.formData();
-  } catch {
-    return json({ ok: false, error: 'Invalid form data' }, 400, CORS_HEADERS);
-  }
-
-  const name    = (fd.get('name')     ?? '').toString().trim();
-  const email   = (fd.get('email')    ?? '').toString().trim();
-  const message = (fd.get('message')  ?? '').toString().trim();
-  const formType = (fd.get('formType') ?? 'armsway-inquiry').toString();
-
-  if (!name || !email || !message) return json({ ok: false, error: 'Missing required fields' }, 422);
-  if (!name || !email || !message) {
-    return json({ ok: false, error: 'Missing required fields: name, email, message' }, 422, CORS_HEADERS);
-  }
-
-  // Basic email format check
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return json({ ok: false, error: 'Invalid email address' }, 422, CORS_HEADERS);
-  }
-
-  const id = crypto.randomUUID();
-  const ip = request.headers.get('CF-Connecting-IP') ?? null;
-
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
   try {
     await env.PLATFORM_DB.prepare(
       `INSERT INTO lead_submissions (id, form_type, name, email, message, status, received_at, ip_address)
        VALUES (?, ?, ?, ?, ?, 'new', datetime('now'), ?)`
-<<<<<<< HEAD
-    )
-      .bind(id, formType, name, email, message, ip)
-      .run()
-  } catch (error) {
-    console.error('[contact] DB insert failed:', error)
-  }
-
-=======
     ).bind(id, formType, name, email, message, ip).run();
   } catch (e) {
     console.error('[contact] DB insert failed:', e);
@@ -467,20 +345,13 @@ async function handleContactForm(request: Request, env: Env): Promise<Response> 
   }
 
   // Emit analytics event (non-blocking — do NOT await)
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
   env.ANALYTICS?.writeDataPoint({
     doubles: [1],
     blobs: [formType, 'contact_form_submit'],
     indexes: [email],
-<<<<<<< HEAD
-  })
-
-  return json({ ok: true, submissionId: id }, 200, CORS_HEADERS)
-=======
   });
 
   return json({ ok: true, submissionId: id }, 200, CORS_HEADERS);
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 }
 
 async function handlePoASubmit(request: Request, env: Env): Promise<Response> {
@@ -489,24 +360,6 @@ async function handlePoASubmit(request: Request, env: Env): Promise<Response> {
     return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS)
   }
 
-<<<<<<< HEAD
-  let body: Partial<WorkflowParams>
-  try {
-    body = await request.json<Partial<WorkflowParams>>()
-  } catch {
-    return json({ ok: false, error: 'Invalid JSON body' }, 400, CORS_HEADERS)
-  }
-
-  if (!body.contentType) {
-    return json(
-      { ok: false, error: 'Missing required field: contentType' },
-      422,
-      CORS_HEADERS
-    )
-  }
-
-  const jobId = body.jobId ?? crypto.randomUUID()
-=======
   const jobId = body.jobId ?? crypto.randomUUID();
   const instance = await env.CONTENT_WORKFLOW.create({ id: jobId, params: { ...body, jobId } });
   return json({ ok: true, jobId: instance.id, status: await instance.status() });
@@ -524,13 +377,11 @@ async function handlePoASubmit(request: Request, env: Env): Promise<Response> {
   }
 
   const jobId = body.jobId ?? crypto.randomUUID();
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 
   try {
     const instance = await env.CONTENT_WORKFLOW.create({
       id: jobId,
       params: { ...body, jobId } as WorkflowParams,
-<<<<<<< HEAD
     })
 
     return json(
@@ -541,30 +392,21 @@ async function handlePoASubmit(request: Request, env: Env): Promise<Response> {
   } catch (error) {
     console.error('[poa/submit] Workflow create failed:', error)
     return json({ ok: false, error: 'Failed to start workflow' }, 500, CORS_HEADERS)
-=======
     });
 
     return json({ ok: true, jobId: instance.id, status: await instance.status() }, 202, CORS_HEADERS);
   } catch (e) {
     console.error('[poa/submit] Workflow create failed:', e);
     return json({ ok: false, error: 'Failed to start workflow' }, 500, CORS_HEADERS);
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
   }
 }
 
 async function handlePoAStatus(jobId: string, env: Env): Promise<Response> {
   try {
-<<<<<<< HEAD
-    const instance = await env.CONTENT_WORKFLOW.get(jobId)
-    return json({ ok: true, jobId, status: await instance.status() }, 200, CORS_HEADERS)
-  } catch {
-    return json({ ok: false, error: 'Job not found' }, 404, CORS_HEADERS)
-=======
     const instance = await env.CONTENT_WORKFLOW.get(jobId);
     return json({ ok: true, jobId, status: await instance.status() }, 200, CORS_HEADERS);
   } catch {
     return json({ ok: false, error: 'Job not found' }, 404, CORS_HEADERS);
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
   }
 }
 
@@ -586,12 +428,10 @@ export default {
   },
 }
   async fetch(request: Request, env: Env): Promise<Response> {
-<<<<<<< HEAD
     const url = new URL(request.url)
     const { pathname, method } = url
 
     if (method === 'OPTIONS') return handleCorsPreFlight()
-=======
     const url = new URL(request.url);
     const { pathname, method } = url;
 
@@ -602,11 +442,20 @@ export default {
     };
     // Preflight
     if (method === 'OPTIONS') return handleCorsPreFlight();
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
 
     // Health
+    return new Response('banproof-me worker online', {
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    })
+  },
+}
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url)
+    const { pathname, method } = url
+
+    if (method === 'OPTIONS') return handleCorsPreFlight()
+
     if (pathname === '/health') {
-<<<<<<< HEAD
       return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, CORS_HEADERS)
     }
 
@@ -624,7 +473,6 @@ export default {
     }
 
     return env.ASSETS.fetch(request)
-=======
       return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, corsHeaders);
     }
 
@@ -646,13 +494,11 @@ export default {
     // Serve static site for all other routes
     // Fallthrough → static SPA
     return env.ASSETS.fetch(request);
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
   },
 
   async queue(batch: MessageBatch<QueueJobMessage>, env: Env): Promise<void> {
     await Promise.allSettled(
       batch.messages.map(async (message) => {
-<<<<<<< HEAD
         const { type, payload } = message.body
         try {
           const correlationId =
@@ -660,8 +506,16 @@ export default {
               ? payload.correlationId
               : undefined
           console.log(`[queue] Processing job: ${type}`, { correlationId })
+    for (const message of batch.messages) {
+      const { type, payload } = message.body;
 
-          env.ANALYTICS?.writeDataPoint({
+      try {
+        const { type, payload } = message.body;
+        console.log(`[Queue] Processing job: ${type}`, payload);
+
+        // Record event in analytics
+        if (env.ANALYTICS) {
+          env.ANALYTICS.write({
             doubles: [1],
             blobs: [type, JSON.stringify(payload)],
             indexes: [type],
@@ -693,9 +547,6 @@ export default {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
-              })
-              break
-=======
         try {
           const { type, payload } = message.body;
           console.log(`[Queue] Processing job: ${type}`, payload);
@@ -726,7 +577,8 @@ export default {
                 throw new Error('EMAIL_ROUTER binding is missing');
               }
               await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
-    for (const message of batch.messages) {
+    });
+      for (const message of batch.messages) {
       const { type, payload } = message.body;
 
       try {
@@ -776,38 +628,41 @@ export default {
         }
       })
     );
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
+              });
+              break;
             }
 
-<<<<<<< HEAD
             case 'sync_user': {
               const userId =
                 typeof payload.userId === 'string' ? payload.userId : 'unknown'
               console.log(`[queue] sync_user for userId=${userId}`)
               break
-=======
           case 'send_email':
           }
 
           case 'send_email': {
             if (!env.EMAIL_ROUTER) {
               throw new Error('EMAIL_ROUTER service binding is not configured');
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
             }
+            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            break;
+
+          case 'sync_user':
+            // Logic for user synchronization could go here
+            break;
+
+          default:
+            console.warn(`[Queue] Unhandled job type: ${type}`);
+          }
 
             default:
               console.warn(`[queue] Unhandled job type: ${type}`)
           }
 
-<<<<<<< HEAD
-          message.ack()
-        } catch (error) {
-          console.error(`[queue] Error processing message type="${type}":`, error)
-          message.retry()
-        }
-      })
-    )
-=======
           default:
             console.warn(`[Queue] Unhandled job type: ${type}`);
           }
@@ -828,6 +683,5 @@ export default {
         message.retry();
       }
     }
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
   },
 } satisfies ExportedHandler<Env>
