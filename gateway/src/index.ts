@@ -249,6 +249,15 @@ export default {
     await Promise.allSettled(
       batch.messages.map(async (message) => {
         const { type, payload } = message.body;
+        console.log(`[Queue] Processing job: ${type}`, payload);
+
+        // Record event in analytics if available
+        if (env.ANALYTICS) {
+          env.ANALYTICS.writeDataPoint({
+            doubles: [1],
+            blobs: [type, JSON.stringify(payload)],
+          });
+        }
 
         try {
           const { type, payload } = message.body;
@@ -303,6 +312,13 @@ export default {
               // Logic for user synchronization could go here
               break;
             }
+            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            break;
+          }
 
             default:
               console.warn(`[Queue] Unknown job type: ${type}`);
