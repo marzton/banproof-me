@@ -312,14 +312,11 @@ export default {
               // Logic for user synchronization could go here
               break;
             }
-            const emailResponse = await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload),
             });
-            if (!emailResponse.ok) {
-              throw new Error(`EMAIL_ROUTER returned ${emailResponse.status}`);
-            }
             break;
           }
 
