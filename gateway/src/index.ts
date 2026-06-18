@@ -249,6 +249,15 @@ export default {
     await Promise.allSettled(
       batch.messages.map(async (message) => {
         const { type, payload } = message.body;
+        console.log(`[Queue] Processing job: ${type}`, payload);
+
+        // Record event in analytics if available
+        if (env.ANALYTICS) {
+          env.ANALYTICS.writeDataPoint({
+            doubles: [1],
+            blobs: [type, JSON.stringify(payload)],
+          });
+        }
 
         try {
           const { type, payload } = message.body;
@@ -261,6 +270,22 @@ export default {
               : undefined;
 
           console.log(`[Queue] Processing job: ${type}`, { correlationId });
+        switch (type) {
+          case 'tier_upgraded': {
+            if (env.DISCORD_WEBHOOK) {
+              const response = await fetch(env.DISCORD_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+                }),
+              });
+              if (!response.ok) {
+                throw new Error(`Discord webhook failed with status ${response.status}`);
+              }
+            }
+            break;
+          }
 
           // Record event in analytics if available
           if (env.ANALYTICS) {
@@ -270,6 +295,50 @@ export default {
             });
           }
 
+          switch (type) {
+            case 'tier_upgraded': {
+              if (env.DISCORD_WEBHOOK) {
+                const response = await fetch(env.DISCORD_WEBHOOK, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    content: `🚀 **Tier Upgrade** | User \`${payload.userId}\` is now **${payload.targetTier}**!`,
+                  }),
+                });
+                if (!response.ok) {
+                  throw new Error(`Discord webhook failed with status ${response.status}`);
+                }
+              }
+              break;
+            }
+
+            case 'send_email': {
+              if (!env.EMAIL_ROUTER) {
+                throw new Error('EMAIL_ROUTER binding is missing');
+              }
+              await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
+              break;
+            }
+
+            case 'sync_user': {
+              // Logic for user synchronization could go here
+              break;
+            }
+            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            break;
+          }
+
+            default:
+              console.warn(`[Queue] Unknown job type: ${type}`);
+          }
           await handleJob(type, payload, env);
 
           message.ack();

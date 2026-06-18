@@ -68,6 +68,13 @@ binding = "EMAIL_ROUTER"
 service = "banproof-email-router"
 
 # ── Analytics Engine ──────────────────────────────────────────
+# Disabled until gateway runtime is updated to use the
+# Analytics Engine dataset API (`writeDataPoint(...)`) instead of
+# `env.ANALYTICS.write(...)`.
+#
+# [[analytics_engine_datasets]]
+# binding = "ANALYTICS"
+# dataset = "banproof_events"
 [[analytics_engine_datasets]]
 binding = "ANALYTICS"
 dataset = "banproof_events"
@@ -199,3 +206,7 @@ queue = "gs-mail-jobs"
 [[services]]
 binding = "SECURITY"
 service = "banproof-me"
+
+[[services]]
+binding = "SIGNALS"
+service = "gs-signals-prod"

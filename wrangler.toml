@@ -1,0 +1,29 @@
+name = "banproof-me"
+main = "src/index.ts"
+compatibility_date = "2025-09-27"
+compatibility_flags = ["nodejs_compat"]
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+# Static assets for the public site
+[assets]
+directory = "./public"
+not_found_handling = "single-page-application"
+binding = "ASSETS"
+
+[vars]
+ENVIRONMENT = "production"
+
+[[d1_databases]]
+binding       = "DB"
+database_name = "bp-core-prod"
+database_id   = "54e1a408-4b81-4ca5-b6a4-c2314dc0cf46"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id      = "af8eb071fce34b5eafbdeb1badd93876"
+
+[[kv_namespaces]]
+binding = "INFRA_SECRETS"
+id      = "b9824d3280c54573a24137c7e7143b33"
