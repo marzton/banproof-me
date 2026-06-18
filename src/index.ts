@@ -366,17 +366,16 @@ export default {
   },
 
   async queue(batch: MessageBatch<QueueJobMessage>, env: Env): Promise<void> {
-    await Promise.allSettled(
-      batch.messages.map(async (message) => {
-        const { type, payload } = message.body
-        try {
-          const correlationId =
-            typeof payload?.correlationId === 'string'
-              ? payload.correlationId
-              : undefined
-          console.log(`[queue] Processing job: ${type}`, { correlationId })
+    for (const message of batch.messages) {
+      const { type, payload } = message.body;
 
-          env.ANALYTICS?.writeDataPoint({
+      try {
+        const { type, payload } = message.body;
+        console.log(`[Queue] Processing job: ${type}`, payload);
+
+        // Record event in analytics
+        if (env.ANALYTICS) {
+          env.ANALYTICS.writeDataPoint({
             doubles: [1],
             blobs: [type, JSON.stringify(payload)],
             indexes: [type],
@@ -418,6 +417,23 @@ export default {
               console.log(`[queue] sync_user for userId=${userId}`)
               break
             }
+            const emailResponse = await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (!emailResponse.ok) {
+              throw new Error(`EMAIL_ROUTER returned ${emailResponse.status}`);
+            }
+            break;
+
+          case 'sync_user':
+            // Logic for user synchronization could go here
+            break;
+
+          default:
+            console.warn(`[Queue] Unhandled job type: ${type}`);
+          }
 
             default:
               console.warn(`[queue] Unhandled job type: ${type}`)
