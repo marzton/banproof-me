@@ -144,7 +144,8 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
         try {
           parsed = JSON.parse(content)
         } catch (error) {
-          throw new Error('OpenAI response was not valid JSON')
+          const reason = error instanceof Error ? error.message : String(error)
+          throw new Error(`OpenAI response was not valid JSON: ${reason}`)
         }
 
         if (!parsed || typeof parsed !== 'object') {
@@ -333,6 +334,17 @@ export default {
 
     if (method === 'OPTIONS') return handleCorsPreFlight()
 
+    return new Response('banproof-me worker online', {
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    })
+  },
+}
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url)
+    const { pathname, method } = url
+
+    if (method === 'OPTIONS') return handleCorsPreFlight()
+
     if (pathname === '/health') {
       return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, CORS_HEADERS)
     }
@@ -354,17 +366,16 @@ export default {
   },
 
   async queue(batch: MessageBatch<QueueJobMessage>, env: Env): Promise<void> {
-    await Promise.allSettled(
-      batch.messages.map(async (message) => {
-        const { type, payload } = message.body
-        try {
-          const correlationId =
-            typeof payload?.correlationId === 'string'
-              ? payload.correlationId
-              : undefined
-          console.log(`[queue] Processing job: ${type}`, { correlationId })
+    for (const message of batch.messages) {
+      const { type, payload } = message.body;
 
-          env.ANALYTICS?.writeDataPoint({
+      try {
+        const { type, payload } = message.body;
+        console.log(`[Queue] Processing job: ${type}`, payload);
+
+        // Record event in analytics
+        if (env.ANALYTICS) {
+          env.ANALYTICS.write({
             doubles: [1],
             blobs: [type, JSON.stringify(payload)],
             indexes: [type],
@@ -396,8 +407,8 @@ export default {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
-              })
-              break
+              });
+              break;
             }
 
             case 'sync_user': {
@@ -406,6 +417,20 @@ export default {
               console.log(`[queue] sync_user for userId=${userId}`)
               break
             }
+            await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            break;
+
+          case 'sync_user':
+            // Logic for user synchronization could go here
+            break;
+
+          default:
+            console.warn(`[Queue] Unhandled job type: ${type}`);
+          }
 
             default:
               console.warn(`[queue] Unhandled job type: ${type}`)
