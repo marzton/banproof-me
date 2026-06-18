@@ -14,11 +14,11 @@
     "types":            "wrangler types --config wrangler.toml"
   },
   "dependencies": {
-    "hono": "^4.12.16"
+    "hono": "^4.12.25"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260401.1",
     "typescript": "^5.7.2",
-    "wrangler": "^4.79.0"
+    "wrangler": "^4.98.0"
   }
 }
