@@ -120,6 +120,15 @@ name = "banproof-me"
 main = "src/index.ts"
 compatibility_date = "2025-09-27"
 compatibility_flags = ["nodejs_compat"]
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+# Static assets for the public site
+[assets]
+directory = "./public"
+not_found_handling = "single-page-application"
+binding = "ASSETS"
 
 [vars]
 ENVIRONMENT = "production"
