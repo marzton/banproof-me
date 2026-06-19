@@ -41,7 +41,9 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint {
  *   GET  /api/poa/:id       → get workflow status
  */
 
-import { WorkflowEntrypoint, WorkflowStep, WorkflowEvent } from 'cloudflare:workers';
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // Types
@@ -93,12 +95,28 @@ type QueueJobMessage = {
 };
 
 type WorkflowParams = {
-  jobId: string;
-  contentType: 'media' | 'text' | 'sentiment';
-  sourceKey?: string;
-  payload?: string;
-  submittedBy?: string;
-};
+  jobId: string
+  contentType: 'media' | 'text' | 'sentiment'
+  sourceKey?: string
+  payload?: string
+  submittedBy?: string
+}
+
+type SentimentResult = {
+  sentiment: 'positive' | 'neutral' | 'negative'
+  score: number
+  summary: string
+}
+
+type WorkflowResult = {
+  jobId: string
+  ingested: Record<string, unknown>
+  analysis: SentimentResult | { score: null; reason: string }
+}
+
+// ---------------------------------------------------------------------------
+// Workflow — durable AI/sentiment processing pipeline
+// ---------------------------------------------------------------------------
 
 type SentimentResult = {
   sentiment: 'positive' | 'neutral' | 'negative';
@@ -111,8 +129,11 @@ type SentimentResult = {
 // ---------------------------------------------------------------------------
 
 export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
-  async run(event: WorkflowEvent<WorkflowParams>, step: WorkflowStep) {
-    const { jobId, contentType, payload } = event.payload;
+  async run(
+    event: WorkflowEvent<WorkflowParams>,
+    step: WorkflowStep
+  ): Promise<WorkflowResult> {
+    const { jobId, contentType, payload } = event.payload
 
     // Step 1: Ingest and validate content
     // Step 1: Ingest and validate
@@ -122,33 +143,74 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
         contentType,
         ingestedAt: new Date().toISOString(),
         size: payload?.length ?? 0,
-      };
-    });
+      }
+    })
 
-    // Step 2: AI analysis (OpenAI or Workers AI)
-    const analysis = await step.do('ai-analysis', { retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' } }, async () => {
-      if (!this.env.OPENAI_API_KEY) return { score: null, reason: 'no_api_key' };
+    const analysis = await step.do<SentimentResult | { score: null; reason: string }>(
+      'ai-analysis',
+      {
+        retries: { limit: 3, delay: '10 seconds', backoff: 'exponential' },
+        timeout: '2 minutes',
+      },
+      async () => {
+        if (!this.env.OPENAI_API_KEY) return { score: null, reason: 'no_api_key' }
 
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${this.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: 'You are a content sentiment analyzer. Respond with JSON only: {"sentiment":"positive|neutral|negative","score":0.0-1.0,"summary":"brief"}' },
-            { role: 'user', content: payload ?? 'No content provided.' },
-          ],
-          max_tokens: 200,
-          response_format: { type: 'json_object' },
-        }),
-      });
-      if (!res.ok) throw new Error(`OpenAI error: ${res.status}`);
-      const data = await res.json<{ choices: Array<{ message: { content: string } }> }>();
-      return JSON.parse(data.choices[0].message.content);
-    });
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.env.OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are a content sentiment analyzer. Respond with JSON only: {"sentiment":"positive|neutral|negative","score":0.0-1.0,"summary":"brief"}',
+              },
+              { role: 'user', content: payload ?? 'No content provided.' },
+            ],
+            max_tokens: 200,
+            response_format: { type: 'json_object' },
+          }),
+        })
+
+        if (!res.ok) throw new Error(`OpenAI error: ${res.status}`)
+
+        const data = await res.json<{ choices?: Array<{ message?: { content?: string } }> }>()
+        const content = data?.choices?.[0]?.message?.content
+        if (typeof content !== 'string') {
+          throw new Error('OpenAI response missing content')
+        }
+
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(content)
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error)
+          throw new Error(`OpenAI response was not valid JSON: ${reason}`)
+        }
+
+        if (!parsed || typeof parsed !== 'object') {
+          throw new Error('OpenAI response shape invalid')
+        }
+
+        const sentiment = (parsed as { sentiment?: unknown }).sentiment
+        const score = (parsed as { score?: unknown }).score
+        const summary = (parsed as { summary?: unknown }).summary
+
+        if (
+          (sentiment !== 'positive' && sentiment !== 'neutral' && sentiment !== 'negative') ||
+          typeof score !== 'number' ||
+          typeof summary !== 'string'
+        ) {
+          throw new Error('OpenAI response fields invalid')
+        }
+
+        return { sentiment, score, summary }
+      }
+    )
 
     // Step 3: Write Proof of Agency record to D1
     // Step 2: AI sentiment analysis via OpenAI
@@ -194,10 +256,12 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowP
       await this.env.AUDIT_DB.prepare(
         `INSERT OR IGNORE INTO worker_audit (id, ts, worker, action, result, detail)
          VALUES (?, datetime('now'), 'banproof-me', 'poa_record', 'ok', ?)`
-      ).bind(jobId, JSON.stringify({ ingested, analysis })).run();
-    });
+      )
+        .bind(jobId, JSON.stringify({ ingested, analysis }))
+        .run()
+    })
 
-    return { jobId, ingested, analysis };
+    return { jobId, ingested, analysis }
   }
 }
 
@@ -238,40 +302,37 @@ function handleCorsPreFlight(): Response {
 // ---------------------------------------------------------------------------
 
 async function handleContactForm(request: Request, env: Env): Promise<Response> {
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' } });
+  if (request.method === 'OPTIONS') return handleCorsPreFlight()
+  if (request.method !== 'POST') {
+    return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS)
   }
 
-  let fd: FormData;
-  try { fd = await request.formData(); }
-  catch { return json({ ok: false, error: 'Invalid form data' }, 400); }
-  if (request.method === 'OPTIONS') return handleCorsPreFlight();
-  if (request.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS);
-
-  let fd: FormData;
+  let fd: FormData
   try {
-    fd = await request.formData();
+    fd = await request.formData()
   } catch {
-    return json({ ok: false, error: 'Invalid form data' }, 400, CORS_HEADERS);
+    return json({ ok: false, error: 'Invalid form data' }, 400, CORS_HEADERS)
   }
 
-  const name    = (fd.get('name')     ?? '').toString().trim();
-  const email   = (fd.get('email')    ?? '').toString().trim();
-  const message = (fd.get('message')  ?? '').toString().trim();
-  const formType = (fd.get('formType') ?? 'armsway-inquiry').toString();
+  const name = (fd.get('name') ?? '').toString().trim()
+  const email = (fd.get('email') ?? '').toString().trim()
+  const message = (fd.get('message') ?? '').toString().trim()
+  const formType = (fd.get('formType') ?? 'armsway-inquiry').toString()
 
-  if (!name || !email || !message) return json({ ok: false, error: 'Missing required fields' }, 422);
   if (!name || !email || !message) {
-    return json({ ok: false, error: 'Missing required fields: name, email, message' }, 422, CORS_HEADERS);
+    return json(
+      { ok: false, error: 'Missing required fields: name, email, message' },
+      422,
+      CORS_HEADERS
+    )
   }
 
-  // Basic email format check
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return json({ ok: false, error: 'Invalid email address' }, 422, CORS_HEADERS);
+    return json({ ok: false, error: 'Invalid email address' }, 422, CORS_HEADERS)
   }
 
-  const id = crypto.randomUUID();
-  const ip = request.headers.get('CF-Connecting-IP') ?? null;
+  const id = crypto.randomUUID()
+  const ip = request.headers.get('CF-Connecting-IP') ?? null
 
   try {
     await env.PLATFORM_DB.prepare(
@@ -294,9 +355,10 @@ async function handleContactForm(request: Request, env: Env): Promise<Response> 
 }
 
 async function handlePoASubmit(request: Request, env: Env): Promise<Response> {
-  let body: WorkflowParams;
-  try { body = await request.json<WorkflowParams>(); }
-  catch { return json({ ok: false, error: 'Invalid JSON' }, 400); }
+  if (request.method === 'OPTIONS') return handleCorsPreFlight()
+  if (request.method !== 'POST') {
+    return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS)
+  }
 
   const jobId = body.jobId ?? crypto.randomUUID();
   const instance = await env.CONTENT_WORKFLOW.create({ id: jobId, params: { ...body, jobId } });
@@ -320,6 +382,16 @@ async function handlePoASubmit(request: Request, env: Env): Promise<Response> {
     const instance = await env.CONTENT_WORKFLOW.create({
       id: jobId,
       params: { ...body, jobId } as WorkflowParams,
+    })
+
+    return json(
+      { ok: true, jobId: instance.id, status: await instance.status() },
+      202,
+      CORS_HEADERS
+    )
+  } catch (error) {
+    console.error('[poa/submit] Workflow create failed:', error)
+    return json({ ok: false, error: 'Failed to start workflow' }, 500, CORS_HEADERS)
     });
 
     return json({ ok: true, jobId: instance.id, status: await instance.status() }, 202, CORS_HEADERS);
@@ -356,6 +428,10 @@ export default {
   },
 }
   async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url)
+    const { pathname, method } = url
+
+    if (method === 'OPTIONS') return handleCorsPreFlight()
     const url = new URL(request.url);
     const { pathname, method } = url;
 
@@ -368,7 +444,35 @@ export default {
     if (method === 'OPTIONS') return handleCorsPreFlight();
 
     // Health
+    return new Response('banproof-me worker online', {
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    })
+  },
+}
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url)
+    const { pathname, method } = url
+
+    if (method === 'OPTIONS') return handleCorsPreFlight()
+
     if (pathname === '/health') {
+      return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, CORS_HEADERS)
+    }
+
+    if (pathname === '/api/contact') {
+      return handleContactForm(request, env)
+    }
+
+    if (pathname === '/api/poa/submit') {
+      return handlePoASubmit(request, env)
+    }
+
+    const poaMatch = pathname.match(/^\/api\/poa\/([a-zA-Z0-9_-]+)$/)
+    if (poaMatch && method === 'GET') {
+      return handlePoAStatus(poaMatch[1], env)
+    }
+
+    return env.ASSETS.fetch(request)
       return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, corsHeaders);
     }
 
@@ -395,6 +499,54 @@ export default {
   async queue(batch: MessageBatch<QueueJobMessage>, env: Env): Promise<void> {
     await Promise.allSettled(
       batch.messages.map(async (message) => {
+        const { type, payload } = message.body
+        try {
+          const correlationId =
+            typeof payload?.correlationId === 'string'
+              ? payload.correlationId
+              : undefined
+          console.log(`[queue] Processing job: ${type}`, { correlationId })
+    for (const message of batch.messages) {
+      const { type, payload } = message.body;
+
+      try {
+        const { type, payload } = message.body;
+        console.log(`[Queue] Processing job: ${type}`, payload);
+
+        // Record event in analytics
+        if (env.ANALYTICS) {
+          env.ANALYTICS.write({
+            doubles: [1],
+            blobs: [type, JSON.stringify(payload)],
+            indexes: [type],
+          })
+
+          switch (type) {
+            case 'tier_upgraded': {
+              if (env.DISCORD_WEBHOOK) {
+                const userId =
+                  typeof payload.userId === 'string' ? payload.userId : 'unknown'
+                const targetTier =
+                  typeof payload.targetTier === 'string' ? payload.targetTier : 'unknown'
+                await fetch(env.DISCORD_WEBHOOK, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    content: `🚀 **Tier Upgrade** | User \`${userId}\` is now **${targetTier}**!`,
+                  }),
+                })
+              }
+              break
+            }
+
+            case 'send_email': {
+              if (!env.EMAIL_ROUTER) {
+                throw new Error('EMAIL_ROUTER service binding is not configured')
+              }
+              await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
         try {
           const { type, payload } = message.body;
           console.log(`[Queue] Processing job: ${type}`, payload);
@@ -425,7 +577,8 @@ export default {
                 throw new Error('EMAIL_ROUTER binding is missing');
               }
               await env.EMAIL_ROUTER.fetch('https://email-router.internal/send', {
-    for (const message of batch.messages) {
+    });
+      for (const message of batch.messages) {
       const { type, payload } = message.body;
 
       try {
@@ -475,9 +628,15 @@ export default {
         }
       })
     );
+              });
+              break;
             }
-            break;
 
+            case 'sync_user': {
+              const userId =
+                typeof payload.userId === 'string' ? payload.userId : 'unknown'
+              console.log(`[queue] sync_user for userId=${userId}`)
+              break
           case 'send_email':
           }
 
@@ -500,6 +659,14 @@ export default {
             console.warn(`[Queue] Unhandled job type: ${type}`);
           }
 
+            default:
+              console.warn(`[queue] Unhandled job type: ${type}`)
+          }
+
+          default:
+            console.warn(`[Queue] Unhandled job type: ${type}`);
+          }
+
           case 'sync_user': {
             // Placeholder: implement user sync logic here
             console.log(`[queue] sync_user for userId=${payload.userId}`);
@@ -517,4 +684,4 @@ export default {
       }
     }
   },
-} satisfies ExportedHandler<Env>;
+} satisfies ExportedHandler<Env>
