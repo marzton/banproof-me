@@ -49,6 +49,10 @@ export class ContentProcessingWorkflow extends WorkflowEntrypoint {
 // Types
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
 export interface Env {
   // Static assets
   ASSETS: Fetcher;
@@ -455,6 +459,7 @@ export default {
 
     if (method === 'OPTIONS') return handleCorsPreFlight()
 
+    // Health
     if (pathname === '/health') {
       return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, CORS_HEADERS)
     }
