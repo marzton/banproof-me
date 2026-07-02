@@ -9,3 +9,10 @@
 #
 # This satellite repository remains archived for reference but should
 # NOT be deployed independently. See deploy.yml for deployment status.
+#
+# Keep this root manifest intentionally inert: do not add routes or
+# queue consumers here. gateway/wrangler.toml owns the deployable
+# banproof.me Worker routes (including preview.banproof.me/*) and the
+# goldshore-jobs queue consumer; apex routes remain forbidden by
+# ops/cloudflare-required.json so the Pages-hosted public site is not
+# moved behind this Worker.
