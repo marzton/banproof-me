@@ -223,25 +223,15 @@ describe('rateLimiter middleware', () => {
     const minuteTs = Math.floor(vi.getMockedSystemTime()!.getTime() / 60_000);
     const key = `ratelimit:free-user:${minuteTs}`;
     // Pre-populate KV to simulate 9 already consumed
-<<<<<<< HEAD
-    const rig2 = buildRateLimitApp({ [key]: '9' });
-    const res = await rig2.app.fetch(
-=======
     const rig = buildRateLimitApp({ [key]: '9' });
     const res = await rig.app.fetch(
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
       new Request('http://localhost/api/pro/analyze', {
         method: 'POST',
         body:   '{}',
         headers: { 'X-User-Id': 'free-user', 'X-User-Tier': 'free' },
       }),
-<<<<<<< HEAD
       { CACHE: rig2.kv, DB: rig2.db } as any,
-      rig2.ctx,
-=======
-      { CACHE: rig.kv, DB: rig.db } as any,
-      rig.ctx,
->>>>>>> origin/codex/fix-wrangler.toml-configuration-errors-2026-05-22
+      rig2.ctx
     );
     expect(res.status).toBe(200);
     expect(res.headers.get('X-RateLimit-Remaining')).toBe('0');
