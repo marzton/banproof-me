@@ -8,6 +8,10 @@ import {
 // Types
 // ============================================================================
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
 export interface Env {
   ASSETS: Fetcher
   GS_CONFIG: KVNamespace
@@ -27,9 +31,9 @@ export interface Env {
 }
 
 type QueueJobMessage = {
-  type: 'tier_upgraded' | 'send_email' | 'sync_user' | string
-  payload: Record<string, unknown>
-}
+  type: 'tier_upgraded' | 'send_email' | 'sync_user' | string;
+  payload: Record<string, unknown>;
+};
 
 type WorkflowParams = {
   jobId: string
@@ -54,6 +58,16 @@ type WorkflowResult = {
 // ============================================================================
 // ContentProcessingWorkflow — durable AI/sentiment processing pipeline
 // ============================================================================
+
+type SentimentResult = {
+  sentiment: 'positive' | 'neutral' | 'negative';
+  score: number;
+  summary: string;
+};
+
+// ---------------------------------------------------------------------------
+// Workflow — durable AI/sentiment processing pipeline
+// ---------------------------------------------------------------------------
 
 export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
   async run(
@@ -163,7 +177,7 @@ function json(data: unknown, status = 200, extraHeaders: Record<string, string> 
       'Cache-Control': 'no-store',
       ...extraHeaders,
     },
-  })
+  });
 }
 
 const CORS_HEADERS: Record<string, string> = {
@@ -180,7 +194,7 @@ function handleCorsPreFlight(): Response {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',
     },
-  })
+  });
 }
 
 // ============================================================================
@@ -238,18 +252,23 @@ async function handlePoASubmit(request: Request, env: Env): Promise<Response> {
     return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS)
   }
 
-  let body: Partial<WorkflowParams>
+  const jobId = body.jobId ?? crypto.randomUUID();
+  const instance = await env.CONTENT_WORKFLOW.create({ id: jobId, params: { ...body, jobId } });
+  return json({ ok: true, jobId: instance.id, status: await instance.status() });
+  if (request.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS);
+
+  let body: Partial<WorkflowParams>;
   try {
-    body = await request.json<Partial<WorkflowParams>>()
+    body = await request.json<Partial<WorkflowParams>>();
   } catch {
-    return json({ ok: false, error: 'Invalid JSON body' }, 400, CORS_HEADERS)
+    return json({ ok: false, error: 'Invalid JSON body' }, 400, CORS_HEADERS);
   }
 
   if (!body.contentType) {
     return json({ ok: false, error: 'Missing required field: contentType' }, 422, CORS_HEADERS)
   }
 
-  const jobId = body.jobId ?? crypto.randomUUID()
+  const jobId = body.jobId ?? crypto.randomUUID();
 
   try {
     const instance = await env.CONTENT_WORKFLOW.create({
@@ -265,15 +284,21 @@ async function handlePoASubmit(request: Request, env: Env): Promise<Response> {
   } catch (error) {
     console.error('[poa/submit] Workflow create failed:', error)
     return json({ ok: false, error: 'Failed to start workflow' }, 500, CORS_HEADERS)
+    });
+
+    return json({ ok: true, jobId: instance.id, status: await instance.status() }, 202, CORS_HEADERS);
+  } catch (e) {
+    console.error('[poa/submit] Workflow create failed:', e);
+    return json({ ok: false, error: 'Failed to start workflow' }, 500, CORS_HEADERS);
   }
 }
 
 async function handlePoAStatus(jobId: string, env: Env): Promise<Response> {
   try {
-    const instance = await env.CONTENT_WORKFLOW.get(jobId)
-    return json({ ok: true, jobId, status: await instance.status() }, 200, CORS_HEADERS)
+    const instance = await env.CONTENT_WORKFLOW.get(jobId);
+    return json({ ok: true, jobId, status: await instance.status() }, 200, CORS_HEADERS);
   } catch {
-    return json({ ok: false, error: 'Job not found' }, 404, CORS_HEADERS)
+    return json({ ok: false, error: 'Job not found' }, 404, CORS_HEADERS);
   }
 }
 
@@ -282,6 +307,18 @@ async function handlePoAStatus(jobId: string, env: Env): Promise<Response> {
 // ============================================================================
 
 export default {
+  async fetch(request: Request): Promise<Response> {
+    const { pathname } = new URL(request.url)
+
+    if (pathname === '/health') {
+      return new Response('ok', { status: 200 })
+    }
+
+    return new Response('banproof-me worker online', {
+      headers: { 'content-type': 'text/plain; charset=utf-8' },
+    })
+  },
+}
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
     const { pathname, method } = url
@@ -312,5 +349,26 @@ export default {
 
     // Serve static site via ASSETS binding for all other routes
     return env.ASSETS.fetch(request)
+      return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, corsHeaders);
+    }
+
+    // API routes
+    if (pathname === '/api/contact') {
+      return handleContactForm(request, env);
+    }
+
+    if (pathname === '/api/poa/submit' && request.method === 'POST') return handlePoASubmit(request, env);
+    if (pathname === '/api/poa/submit') {
+      return handlePoASubmit(request, env);
+    }
+
+    const poaMatch = pathname.match(/^\/api\/poa\/([a-zA-Z0-9_-]+)$/);
+    if (poaMatch && method === 'GET') {
+      return handlePoAStatus(poaMatch[1], env);
+    }
+
+    // Serve static site for all other routes
+    // Fallthrough → static SPA
+    return env.ASSETS.fetch(request);
   },
 }

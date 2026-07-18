@@ -230,8 +230,8 @@ describe('rateLimiter middleware', () => {
         body:   '{}',
         headers: { 'X-User-Id': 'free-user', 'X-User-Tier': 'free' },
       }),
-      { CACHE: rig.kv, DB: rig.db } as any,
-      rig.ctx,
+      { CACHE: rig2.kv, DB: rig2.db } as any,
+      rig2.ctx
     );
     expect(res.status).toBe(200);
     expect(res.headers.get('X-RateLimit-Remaining')).toBe('0');
