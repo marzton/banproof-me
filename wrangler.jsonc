@@ -1,6 +1,6 @@
 // banproof-me — KEEP + add Workflow for content/media/AI sentiment processing
 {
-  "name": "banproof-me",
+  "name": "banproof-me-prod",
   "main": "src/index.ts",
   "compatibility_date": "2025-03-07",
   "compatibility_flags": ["nodejs_compat"],
