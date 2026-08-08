@@ -28,7 +28,7 @@ jobs:
           cache-dependency-path: gateway/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: TypeScript type check
         run: npx tsc --noEmit
