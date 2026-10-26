@@ -304,7 +304,7 @@ async function authorizeWorkflow(request: Request, env: Env): Promise<Response |
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const { pathname } = new URL(request.url)
+    const { pathname, hostname } = new URL(request.url)
     const method = request.method
     if (method === 'OPTIONS') return handleCorsPreFlight()
     if (pathname === '/health') {
@@ -320,6 +320,11 @@ export default {
       return handlePoAStatus(poaMatch![1], env)
     }
     if (pathname.startsWith('/api/')) return json({ ok: false, error: 'Not found' }, 404, CORS_HEADERS)
+    if (hostname === 'admin.banproof.me' && (method === 'GET' || method === 'HEAD')) {
+      const target = new URL('https://admin.goldshore.ai/app/dashboard')
+      if (pathname.startsWith('/app/')) target.pathname = pathname
+      return new Response(null, { status: 302, headers: { Location: target.toString(), 'Cache-Control': 'no-store' } })
+    }
     if (env.ASSETS) return env.ASSETS.fetch(request)
     return json({ ok: false, error: pathname === '/' ? 'Site assets are not configured' : 'Not found' }, pathname === '/' ? 503 : 404, CORS_HEADERS)
   },
