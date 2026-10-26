@@ -1,7 +1,7 @@
 import {
   WorkflowEntrypoint,
-  WorkflowEvent,
-  WorkflowStep,
+  type WorkflowEvent,
+  type WorkflowStep,
 } from 'cloudflare:workers'
 
 // ============================================================================
@@ -13,7 +13,7 @@ import {
 // ---------------------------------------------------------------------------
 
 export interface Env {
-  ASSETS: Fetcher
+  ASSETS?: Fetcher
   GS_CONFIG: KVNamespace
   PLATFORM_DB: D1Database
   AUDIT_DB: D1Database
@@ -58,16 +58,6 @@ type WorkflowResult = {
 // ============================================================================
 // ContentProcessingWorkflow — durable AI/sentiment processing pipeline
 // ============================================================================
-
-type SentimentResult = {
-  sentiment: 'positive' | 'neutral' | 'negative';
-  score: number;
-  summary: string;
-};
-
-// ---------------------------------------------------------------------------
-// Workflow — durable AI/sentiment processing pipeline
-// ---------------------------------------------------------------------------
 
 export class ContentProcessingWorkflow extends WorkflowEntrypoint<Env, WorkflowParams> {
   async run(
@@ -240,7 +230,8 @@ async function handleContactForm(request: Request, env: Env): Promise<Response> 
        VALUES (?, ?, ?, ?, ?, 'new', datetime('now'), ?)`
     ).bind(id, formType, name, email, message, ip).run()
   } catch (e) {
-    console.error('[contact] DB insert failed:', e)
+    console.error('[contact] DB insert failed')
+    return json({ ok: false, error: 'Submission could not be saved' }, 503, CORS_HEADERS)
   }
 
   return json({ ok: true, submissionId: id }, 200, CORS_HEADERS)
@@ -252,11 +243,6 @@ async function handlePoASubmit(request: Request, env: Env): Promise<Response> {
     return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS)
   }
 
-  const jobId = body.jobId ?? crypto.randomUUID();
-  const instance = await env.CONTENT_WORKFLOW.create({ id: jobId, params: { ...body, jobId } });
-  return json({ ok: true, jobId: instance.id, status: await instance.status() });
-  if (request.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS);
-
   let body: Partial<WorkflowParams>;
   try {
     body = await request.json<Partial<WorkflowParams>>();
@@ -264,7 +250,7 @@ async function handlePoASubmit(request: Request, env: Env): Promise<Response> {
     return json({ ok: false, error: 'Invalid JSON body' }, 400, CORS_HEADERS);
   }
 
-  if (!body.contentType) {
+  if (!body || !['media', 'text', 'sentiment'].includes(body.contentType ?? '')) {
     return json({ ok: false, error: 'Missing required field: contentType' }, 422, CORS_HEADERS)
   }
 
@@ -284,12 +270,6 @@ async function handlePoASubmit(request: Request, env: Env): Promise<Response> {
   } catch (error) {
     console.error('[poa/submit] Workflow create failed:', error)
     return json({ ok: false, error: 'Failed to start workflow' }, 500, CORS_HEADERS)
-    });
-
-    return json({ ok: true, jobId: instance.id, status: await instance.status() }, 202, CORS_HEADERS);
-  } catch (e) {
-    console.error('[poa/submit] Workflow create failed:', e);
-    return json({ ok: false, error: 'Failed to start workflow' }, 500, CORS_HEADERS);
   }
 }
 
@@ -306,69 +286,46 @@ async function handlePoAStatus(jobId: string, env: Env): Promise<Response> {
 // Main fetch handler
 // ============================================================================
 
-export default {
-  async fetch(request: Request): Promise<Response> {
-    const { pathname } = new URL(request.url)
-
-    if (pathname === '/health') {
-      return new Response('ok', { status: 200 })
-    }
-
-    return new Response('banproof-me worker online', {
-      headers: { 'content-type': 'text/plain; charset=utf-8' },
-    })
-  },
+async function authorizeWorkflow(request: Request, env: Env): Promise<Response | null> {
+  if (!env.POA_TOKEN) return json({ ok: false, error: 'Workflow authorization is not configured' }, 503, CORS_HEADERS)
+  const supplied = request.headers.get('Authorization')?.replace(/^Bearer /, '') ?? ''
+  if (!supplied || supplied.length > 4096) return json({ ok: false, error: 'Unauthorized' }, 401, CORS_HEADERS)
+  const encode = new TextEncoder()
+  const [expectedHash, suppliedHash] = await Promise.all([
+    crypto.subtle.digest('SHA-256', encode.encode(env.POA_TOKEN)),
+    crypto.subtle.digest('SHA-256', encode.encode(supplied)),
+  ])
+  const expected = new Uint8Array(expectedHash)
+  const actual = new Uint8Array(suppliedHash)
+  let difference = 0
+  for (let i = 0; i < expected.length; i++) difference |= expected[i] ^ actual[i]
+  return difference === 0 ? null : json({ ok: false, error: 'Unauthorized' }, 401, CORS_HEADERS)
 }
+
+export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url)
-    const { pathname, method } = url
-
-    // Preflight
+    const { pathname, hostname } = new URL(request.url)
+    const method = request.method
     if (method === 'OPTIONS') return handleCorsPreFlight()
-
-    // Health check
     if (pathname === '/health') {
       return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, CORS_HEADERS)
     }
-
-    // Contact form
-    if (pathname === '/api/contact') {
-      return handleContactForm(request, env)
-    }
-
-    // Proof of Agency submit
-    if (pathname === '/api/poa/submit') {
-      return handlePoASubmit(request, env)
-    }
-
-    // Proof of Agency status
+    if (pathname === '/api/contact') return handleContactForm(request, env)
     const poaMatch = pathname.match(/^\/api\/poa\/([a-zA-Z0-9_-]+)$/)
-    if (poaMatch && method === 'GET') {
-      return handlePoAStatus(poaMatch[1], env)
+    if (pathname === '/api/poa/submit' || poaMatch) {
+      const denied = await authorizeWorkflow(request, env)
+      if (denied) return denied
+      if (pathname === '/api/poa/submit') return handlePoASubmit(request, env)
+      if (method !== 'GET') return json({ ok: false, error: 'Method not allowed' }, 405, CORS_HEADERS)
+      return handlePoAStatus(poaMatch![1], env)
     }
-
-    // Serve static site via ASSETS binding for all other routes
-    return env.ASSETS.fetch(request)
-      return json({ ok: true, service: 'banproof-me', env: env.ENV }, 200, corsHeaders);
+    if (pathname.startsWith('/api/')) return json({ ok: false, error: 'Not found' }, 404, CORS_HEADERS)
+    if (hostname === 'admin.banproof.me' && (method === 'GET' || method === 'HEAD')) {
+      const target = new URL('https://admin.goldshore.ai/app/dashboard')
+      if (pathname.startsWith('/app/')) target.pathname = pathname
+      return new Response(null, { status: 302, headers: { Location: target.toString(), 'Cache-Control': 'no-store' } })
     }
-
-    // API routes
-    if (pathname === '/api/contact') {
-      return handleContactForm(request, env);
-    }
-
-    if (pathname === '/api/poa/submit' && request.method === 'POST') return handlePoASubmit(request, env);
-    if (pathname === '/api/poa/submit') {
-      return handlePoASubmit(request, env);
-    }
-
-    const poaMatch = pathname.match(/^\/api\/poa\/([a-zA-Z0-9_-]+)$/);
-    if (poaMatch && method === 'GET') {
-      return handlePoAStatus(poaMatch[1], env);
-    }
-
-    // Serve static site for all other routes
-    // Fallthrough → static SPA
-    return env.ASSETS.fetch(request);
+    if (env.ASSETS) return env.ASSETS.fetch(request)
+    return json({ ok: false, error: pathname === '/' ? 'Site assets are not configured' : 'Not found' }, pathname === '/' ? 503 : 404, CORS_HEADERS)
   },
 }
