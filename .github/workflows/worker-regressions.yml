@@ -1,0 +1,21 @@
+name: Worker regressions
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - '.github/workflows/worker-regressions.yml'
+  push:
+    branches: [main, 'codex/worker-audit-fixes-*']
+permissions:
+  contents: read
+jobs:
+  worker-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test --test-isolation=none tests/worker.test.mjs
